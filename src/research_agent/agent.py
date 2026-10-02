@@ -1,3 +1,31 @@
+"""Planner -> CoinGecko/RSS -> Synthsizer"""
+
+import os
+import json
+import argparse
+
+from openai import OpenAI
+from coingecko_sdk import Coingecko
+
+from urllib.request import Request, urlopen
+from xml.etree import ElementTree as ET
+
+from io import BytesIO
+from unittest.mock import patch
+
+from pydantic import BaseModel
+
+LLM = OpenAI()
+MODEL = "gpt-6-astra"
+COINGECKO = Coingecko(
+    demo_api_key=os.environ["COINGECKO_API_KEY"],
+    environment="demo",
+    timeout=10,
+    max_retries=0,
+)
+RSS_URL = "https://www.coindesk.com/arc/outboundfeeds/rss/"
+
+
 def validate_question(question):
     if not isinstance(question, str):
         raise TypeError("Question type must be string")
@@ -15,7 +43,6 @@ ASSETS = {
     "ethereum": "Ethereum",
     "solana": "Solana",
 }
-
 CURRENCY = {"usd", "krw"}
 
 
@@ -35,6 +62,93 @@ def validate_plan(planned):
         raise ValueError("news_query must be Bitcoin, Ethereum or Solana")
 
     return planned
+
+
+class PlanIn(BaseModel):
+    coin_id: str
+    currency: str
+    news_query: str
+
+
+def extract_request(question):
+    """Return coin_id, currency and news_query for one research request"""
+    response = LLM.responses.parse(
+        model=MODEL,
+        instructions=(
+            "Extract a research plan from the question. "
+            "coin_id must be bitcoin, ethereum or solana. "
+            "currency must be usd or krw. "
+            "news_query must match coin_id exactly: "
+            "bitcoin=Bitcoin, ethereum=Ethereum, solana=Solana."
+            "Interpret the question reardless of its language. "
+            "Normalize asset names to bitcoin, ethereum or solana. "
+            "Normalize currencies to usd or krw. "
+            "Always use the specified canonical values in the output. "
+        ),
+        input=validate_question(question),
+        text_format=PlanIn,
+    )
+    if response.output_parsed is None:
+        raise ValueError("Planner returned no plan")
+    return validate_plan(response.output_parsed.model_dump())
+
+
+def get_price(coin_id, currency):
+    """CoinGecko의 API/SDK를 통해 가격·변동률·last update 시간·출처를 정리"""
+    response = COINGECKO.simple.price.get(
+        ids=coin_id,
+        vs_currencies=currency,
+        include_24hr_change=True,
+        include_last_updated_at=True,
+    )
+
+    row = response[coin_id].to_dict()
+    price = row.get(currency)
+    if price is None:
+        raise ValueError("CoinCecko response is missing price")
+
+    return {
+        "price": price,
+        "change_24h_pct": row.get(f"{currency}_24h_change"),
+        "last_updated_at": row.get("last_updated_at"),
+        "source_url": (
+            "https://api.coingecko.com/api/v3/simple/price?"
+            f"vs_currencies={currency}&ids={coin_id}"
+            "&include_24hr_change=true&include_last_updated_at=true"
+        ),
+    }
+
+
+def get_news(news_query):
+    """Python이 RSS를 읽음 -> news_query가 포함된 기사를 고름 -> 제목·요약·출처·링크를 정리"""
+    request = Request(RSS_URL, headers={"User-Agent": "research-agent/0.1"})
+    with urlopen(request, timeout=10) as response:
+        news = response.read()
+
+    root = ET.fromstring(news)
+    items = root.findall("./channel/item")
+
+    result = []
+    for item in items:
+        title = (item.findtext("title") or "").strip()
+        summary = item.findtext("description") or ""
+        source_url = (item.findtext("link") or "").strip()
+        published_at = item.findtext("pubDate")
+        if not title or not source_url:
+            continue
+        if news_query.casefold() not in f"{title} {summary}".casefold():
+            continue
+        result.append(
+            {
+                "title": title,
+                "summary": summary,
+                "source_url": source_url,
+                "published_at": published_at,
+            }
+        )
+        if len(result) == 3:
+            break
+    return result
 
 
 if __name__ == "__main__":
@@ -93,3 +207,26 @@ if __name__ == "__main__":
         raise AssertionError("dict가 아닌 입력이 TypeError를 발생시키지 않음")
 
     print("self-check passed")
+
+    # CoinDesk RSS test
+    fake_xml = b"""
+    <rss>
+        <channel>
+        <item>
+            <title>Ethereum update</title>
+            <link>https://example.com/eth</link>
+        </item>
+        <item>
+            <title>Bitcoin update</title>
+            <link>https://example.com/btc</link>
+        </item>
+        </channel>
+    </rss>
+    """
+    with patch("__main__.urlopen", return_value=BytesIO(fake_xml)):
+        result = get_news("Ethereum")
+        assert len(result) == 1
+        assert result[0]["title"] == "Ethereum update"
+        assert result[0]["summary"] == ""
+        assert result[0]["published_at"] is None
+        print(result)
