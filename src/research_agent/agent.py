@@ -153,7 +153,7 @@ def get_news(news_query):
 
 
 def synthesize(question, request_info, price, news):
-    """질문에 대해 수집된 가격과 뉴스를 근거로 LLM이 답변 생성"""
+    """question에 대해 수집된 가격·뉴스를 근거로 LLM이 답변 생성"""
     evidence = {
         "question": validate_question(question),
         "request": validate_plan(request_info),
@@ -181,6 +181,43 @@ def synthesize(question, request_info, price, news):
         raise ValueError("Synthesizer returned no answer")
 
     return answer
+
+
+def format_sources(price, news):
+    """수집된 가격·뉴스의 URL을 출처 목록 string으로 반환"""
+    sources = [f"- [CoinGecko price]({price['source_url']})"]
+
+    for idx, article in enumerate(news, start=1):
+        sources.append(f"- [CoinDesk news {idx}]({article['source_url']})")
+
+    return "Sources:\n" + "\n".join(sources)
+
+
+def research(question):
+    """
+    question에서 조회 키워드를 추출 -> 가격·뉴스를 수집
+    -> 근거와 생성 답변을 출력하는 전체 워크플로우
+    """
+    request_info = extract_request(question)
+    price = get_price(request_info["coin_id"], request_info["currency"])
+    news = get_news(request_info["news_query"])
+    answer = synthesize(question, request_info, price, news)
+
+    print("evidence:")
+    print(
+        json.dumps(
+            {
+                "request": request_info,
+                "price": price,
+                "news": news,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+
+    print("\nanswer:")
+    print(answer + "\n\n" + format_sources(price, news))
 
 
 if __name__ == "__main__":
@@ -296,3 +333,17 @@ if __name__ == "__main__":
         assert sent["news"] == []
 
     print("synthesizer self-check passed")
+
+    # format_sources test
+    source_price = {"source_url": "https://example.com/price"}
+    source_news = [{"source_url": "https://example.com/news"}]
+
+    assert format_sources(source_price, source_news) == (
+        "Sources:\n"
+        "- [CoinGecko price](https://example.com/price)\n"
+        "- [CoinDesk news 1](https://example.com/news)"
+    )
+    assert format_sources(source_price, []) == (
+        "Sources:\n" "- [CoinGecko price](https://example.com/price)"
+    )
+    print("sources self-check passed")
