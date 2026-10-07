@@ -4,6 +4,7 @@ import os
 import json
 import argparse
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from types import SimpleNamespace
 
 from openai import OpenAI
@@ -112,7 +113,7 @@ def get_price(coin_id, currency):
     return {
         "price": price,
         "change_24h_pct": row.get(f"{currency}_24h_change"),
-        "last_updated_at": row.get("last_updated_at"),
+        "last_updated_at": to_utc_iso(row.get("last_updated_at")),
         "source_url": (
             "https://api.coingecko.com/api/v3/simple/price?"
             f"vs_currencies={currency}&ids={coin_id}"
@@ -135,7 +136,7 @@ def get_news(news_query):
         title = (item.findtext("title") or "").strip()
         summary = item.findtext("description") or ""
         source_url = (item.findtext("link") or "").strip()
-        published_at = item.findtext("pubDate")
+        published_at = to_utc_iso(item.findtext("pubDate"))
         if not title or not source_url:
             continue
         if news_query.casefold() not in f"{title} {summary}".casefold():
@@ -241,6 +242,23 @@ def research(question):
     print(answer + "\n\n" + sources)
 
     return result
+
+
+def to_utc_iso(value):
+    """Convert Unix seconds or an RSS date string to UTC ISO 8601"""
+    if value is None:
+        return None
+
+    if isinstance(value, (int, float)):
+        timestamp = datetime.fromtimestamp(value, timezone.utc)
+    elif isinstance(value, str):
+        timestamp = parsedate_to_datetime(value)
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+    else:
+        raise TypeError("timestamp must be a number, string or None")
+
+    return timestamp.astimezone(timezone.utc).isoformat()
 
 
 if __name__ == "__main__":
@@ -370,3 +388,8 @@ if __name__ == "__main__":
         "Sources:\n" "- [CoinGecko price](https://example.com/price)"
     )
     print("sources self-check passed")
+
+    # to_utc_iso
+    assert to_utc_iso(0) == "1970-01-01T00:00:00+00:00"
+    assert to_utc_iso("Thi, 01, Jan 1970 09:00:00 +0900") == "1970-01-01T00:00:00+00:00"
+    assert to_utc_iso(None) is None
