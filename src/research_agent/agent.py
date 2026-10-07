@@ -3,6 +3,7 @@
 import os
 import json
 import argparse
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 from openai import OpenAI
@@ -195,13 +196,33 @@ def format_sources(price, news):
 
 def research(question):
     """
-    question에서 조회 키워드를 추출 -> 가격·뉴스를 수집
-    -> 근거와 생성 답변을 출력하는 전체 워크플로우
+    Run the research workflow and
+    return its evidence and answer
     """
     request_info = extract_request(question)
     price = get_price(request_info["coin_id"], request_info["currency"])
     news = get_news(request_info["news_query"])
     answer = synthesize(question, request_info, price, news)
+    sources = format_sources(price, news)
+
+    warnings = []
+    if not news:
+        warnings.append("No matching news found in the current RSS feed")
+    if price.get("change_24h_pct") is None:
+        warnings.append("24-hour price change is unavailable")
+    if price.get("last_updated_at") is None:
+        warnings.append("Price update time is unavailable")
+
+    result = {
+        "request": request_info,
+        "price": price,
+        "news": news,
+        "answer": answer,
+        "sources": sources,
+        "status": "partial" if warnings else "ok",
+        "warnings": warnings,
+        "collected_at": datetime.now(timezone.utc).isoformat(),
+    }
 
     print("evidence:")
     print(
@@ -217,7 +238,9 @@ def research(question):
     )
 
     print("\nanswer:")
-    print(answer + "\n\n" + format_sources(price, news))
+    print(answer + "\n\n" + sources)
+
+    return result
 
 
 if __name__ == "__main__":
@@ -236,13 +259,13 @@ if __name__ == "__main__":
     else:
         raise AssertionError("None이 TypeError를 발생시키지 않음")
 
-    valid_plan = {
+    validate_plan = {
         "coin_id": "ethereum",
         "currency": "usd",
         "news_query": "Ethereum",
     }
 
-    assert validate_plan(valid_plan) == valid_plan
+    assert validate_plan(validate_plan) == validate_plan
     try:
         validate_plan({"coin_id": "soon", "currency": "usd", "news_query": "Soon"})
     except ValueError:
@@ -269,7 +292,7 @@ if __name__ == "__main__":
         raise AssertionError("잘못된 입력이 ValueError를 발생시키지 않음")
 
     try:
-        valid_plan(None)
+        validate_plan(None)
     except TypeError:
         pass
     else:
