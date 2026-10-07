@@ -259,13 +259,13 @@ if __name__ == "__main__":
     else:
         raise AssertionError("None이 TypeError를 발생시키지 않음")
 
-    validate_plan = {
+    valid_plan = {
         "coin_id": "ethereum",
         "currency": "usd",
         "news_query": "Ethereum",
     }
 
-    assert validate_plan(validate_plan) == validate_plan
+    assert validate_plan(validate_plan) == valid_plan
     try:
         validate_plan({"coin_id": "soon", "currency": "usd", "news_query": "Soon"})
     except ValueError:
