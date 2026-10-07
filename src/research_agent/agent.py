@@ -186,33 +186,69 @@ def synthesize(question, request_info, price, news):
 
 
 def format_sources(price, news):
-    """수집된 가격·뉴스의 URL을 출처 목록 string으로 반환"""
-    sources = [f"- [CoinGecko price]({price['source_url']})"]
+    """Return collected price and news URLs as a Markdown source list"""
+    sources = []
+
+    if price is not None:
+        sources.append(f"- [CoinGecko price]({price['source_url']})")
 
     for idx, article in enumerate(news, start=1):
         sources.append(f"- [CoinDesk news {idx}]({article['source_url']})")
+
+    if not sources:
+        return "Sources:\n- No sources collected"
 
     return "Sources:\n" + "\n".join(sources)
 
 
 def research(question):
-    """
-    Run the research workflow and
-    return its evidence and answer
-    """
+    """Run the research workflow and return its evidence and answer"""
     request_info = extract_request(question)
-    price = get_price(request_info["coin_id"], request_info["currency"])
-    news = get_news(request_info["news_query"])
-    answer = synthesize(question, request_info, price, news)
+    warnings = []
+
+    try:
+        price = get_price(
+            request_info["coin_id"],
+            request_info["currency"],
+        )
+    except Exception as error:
+        price = None
+        warnings.append(f"Price collection failed: {type(error).__name__}")
+
+    news_failed = False
+
+    try:
+        news = get_news(request_info["news_query"])
+    except Exception as error:
+        news = []
+        news_failed = True
+        warnings.append(f"News collection failed: {type(error).__name__}")
+
+    if not news and not news_failed:
+        warnings.append("No matching news found in the current RSS feed")
+
+    if price is not None:
+        if price.get("change_24h_pct") is None:
+            warnings.append("24-hour price change is unavailable")
+        if price.get("last_updated_at") is None:
+            warnings.append("Price update time is unavailable")
+
+    if price is None and not news:
+        answer = (
+            "수집된 근거가 없어 답변을 생성하지 않았습니다. /"
+            "No evidence was collected, so no answer was generated"
+        )
+    else:
+        answer = synthesize(question, request_info, price, news)
+
     sources = format_sources(price, news)
 
-    warnings = []
-    if not news:
-        warnings.append("No matching news found in the current RSS feed")
-    if price.get("change_24h_pct") is None:
-        warnings.append("24-hour price change is unavailable")
-    if price.get("last_updated_at") is None:
-        warnings.append("Price update time is unavailable")
+    if price is None and not news:
+        status = "failed"
+    elif warnings:
+        status = "partial"
+    else:
+        status = "ok"
 
     result = {
         "request": request_info,
@@ -220,7 +256,7 @@ def research(question):
         "news": news,
         "answer": answer,
         "sources": sources,
-        "status": "partial" if warnings else "ok",
+        "status": status,
         "warnings": warnings,
         "collected_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -355,6 +391,26 @@ if __name__ == "__main__":
     }
     fake_response = SimpleNamespace(output_text=" 테스트 답변 ")
 
+    with (
+        patch("__main__.extract_request", return_value=test_request),
+        patch("__main__.get_price", return_value=test_price),
+        patch("__main__.synthesize", return_value="테스트 답변"),
+    ):
+        with patch("__main__.get_news", return_value=[]):
+            no_news = research("이더리움")
+            assert (
+                "No matching news found in the current RSS feed" in no_news["warnings"]
+            )
+
+        with patch("__main__.get_news", side_effect=RuntimeError("RSS unavailable")):
+            news_failure = research("이더리움")
+            assert any(
+                warning.startswith("News collection failed:")
+                for warning in news_failure["warnings"]
+            )
+
+    print("news-state selt-check passed")
+
     with patch.object(
         LLM.responses, "create", return_value=fake_response
     ) as mock_create:
@@ -393,3 +449,79 @@ if __name__ == "__main__":
     assert to_utc_iso(0) == "1970-01-01T00:00:00+00:00"
     assert to_utc_iso("Thi, 01, Jan 1970 09:00:00 +0900") == "1970-01-01T00:00:00+00:00"
     assert to_utc_iso(None) is None
+
+    # price API failures
+    test_request = {
+        "coin_id": "ethereum",
+        "currency": "usd",
+        "news_query": "Ethereum",
+    }
+
+test_news = [
+    {
+        "title": "Ethereum update",
+        "summary": "Test article",
+        "source_url": "https://example.com/eth",
+        "published_at": "1970-01-01T00:00:00+00:00",
+    }
+]
+
+with (
+    patch("__main__.extract_request", return_value=test_request),
+    patch(
+        "__main__.get_price",
+        side_effect=RuntimeError("price unavailable"),
+    ),
+    patch("__main__.get_news", return_value=test_news),
+    patch(
+        "__main__.synthesize",
+        return_value="뉴스만 사용한 테스트 답변",
+    ) as mock_synthesize,
+    patch("builtins.print"),
+):
+    partial_result = research("이더리움")
+
+assert partial_result["status"] == "partial"
+assert partial_result["price"] is None
+assert partial_result["news"] == test_news
+assert partial_result["answer"] == "뉴스만 사용한 테스트 답변"
+assert partial_result["sources"] == (
+    "Sources:\n" "- [CoinDesk news 1](https://example.com/eth)"
+)
+assert any(
+    warning.startswith("Price collection failed:")
+    for warning in partial_result["warnings"]
+)
+assert mock_synthesize.call_count == 1
+
+with (
+    patch("__main__.extract_request", return_value=test_request),
+    patch(
+        "__main__.get_price",
+        side_effect=RuntimeError("price unavailable"),
+    ),
+    patch(
+        "__main__.get_news",
+        side_effect=RuntimeError("RSS unavailable"),
+    ),
+    patch("__main__.synthesize") as mock_synthesize,
+    patch("builtins.print"),
+):
+    failed_result = research("이더리움")
+
+assert failed_result["status"] == "failed"
+assert failed_result["price"] is None
+assert failed_result["news"] == []
+assert failed_result["sources"] == "Sources:\n- No sources collected"
+assert failed_result["answer"].startswith("수집된 근거가 없어")
+assert any(
+    warning.startswith("Price collection failed:")
+    for warning in failed_result["warnings"]
+)
+assert any(
+    warning.startswith("News collection failed:")
+    for warning in failed_result["warnings"]
+)
+mock_synthesize.assert_not_called()
+
+print("price-failure self-check passed")
