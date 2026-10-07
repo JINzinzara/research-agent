@@ -265,7 +265,7 @@ if __name__ == "__main__":
         "news_query": "Ethereum",
     }
 
-    assert validate_plan(validate_plan) == valid_plan
+    assert validate_plan(valid_plan) == valid_plan
     try:
         validate_plan({"coin_id": "soon", "currency": "usd", "news_query": "Soon"})
     except ValueError:
