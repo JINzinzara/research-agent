@@ -306,7 +306,8 @@ def to_utc_iso(value):
 
 
 def previous_day_window(now):
-    """KST 전날 [시작, 끝) 범위를 UTC datetime 두 개로 반환"""
+    """KST 전날 [시작, 끝) 범위를 UTC datetime 두 개로 반환
+    기사 발행 시각이 해당 범위 안에 속하는지 판정을 위한 기준"""
     if now.tzinfo is None or now.utcoffset() is None:
         raise ValueError("now must include timezone information")
 
@@ -317,6 +318,19 @@ def previous_day_window(now):
     start_kst = end_kst - timedelta(days=1)
 
     return start_kst.astimezone(timezone.utc), end_kst.astimezone(timezone.utc)
+
+
+def classify_news_period(published_at, start, end):
+    """UTC ISO 발행 시각을 기간 안·밖·미상으로 구분"""
+    # isoformat: datetime -> string, fromisoformat: string -> datetime
+    if published_at is None:
+        return "unknown"
+
+    published = datetime.fromisoformat(published_at)
+    if start <= published < end:
+        return "in_period"
+
+    return "outside_period"
 
 
 if __name__ == "__main__":
@@ -600,3 +614,16 @@ if __name__ == "__main__":
         raise AssertionError("시간대가 없는 입력이 거부되지 않음")
 
     print("previous-day window self-check passed")
+
+    # news 발행 시각 조건
+    assert classify_news_period(start.isoformat(), start, end) == "in_period"
+    assert classify_news_period(end.isoformat(), start, end) == "outside_period"
+
+    before_start = (start - timedelta(seconds=1)).isoformat()
+    before_end = (end - timedelta(seconds=1)).isoformat()
+
+    assert classify_news_period(before_start, start, end) == "outside_period"
+    assert classify_news_period(before_end, start, end) == "in_period"
+    assert classify_news_period(None, start, end) == "unknown"
+
+    print("news-period self-check passed")
