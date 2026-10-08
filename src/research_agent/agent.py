@@ -457,71 +457,71 @@ if __name__ == "__main__":
         "news_query": "Ethereum",
     }
 
-test_news = [
-    {
-        "title": "Ethereum update",
-        "summary": "Test article",
-        "source_url": "https://example.com/eth",
-        "published_at": "1970-01-01T00:00:00+00:00",
-    }
-]
+    test_news = [
+        {
+            "title": "Ethereum update",
+            "summary": "Test article",
+            "source_url": "https://example.com/eth",
+            "published_at": "1970-01-01T00:00:00+00:00",
+        }
+    ]
 
-with (
-    patch("__main__.extract_request", return_value=test_request),
-    patch(
-        "__main__.get_price",
-        side_effect=RuntimeError("price unavailable"),
-    ),
-    patch("__main__.get_news", return_value=test_news),
-    patch(
-        "__main__.synthesize",
-        return_value="뉴스만 사용한 테스트 답변",
-    ) as mock_synthesize,
-    patch("builtins.print"),
-):
-    partial_result = research("이더리움")
+    with (
+        patch("__main__.extract_request", return_value=test_request),
+        patch(
+            "__main__.get_price",
+            side_effect=RuntimeError("price unavailable"),
+        ),
+        patch("__main__.get_news", return_value=test_news),
+        patch(
+            "__main__.synthesize",
+            return_value="뉴스만 사용한 테스트 답변",
+        ) as mock_synthesize,
+        patch("builtins.print"),
+    ):
+        partial_result = research("이더리움")
 
-assert partial_result["status"] == "partial"
-assert partial_result["price"] is None
-assert partial_result["news"] == test_news
-assert partial_result["answer"] == "뉴스만 사용한 테스트 답변"
-assert partial_result["sources"] == (
-    "Sources:\n" "- [CoinDesk news 1](https://example.com/eth)"
-)
-assert any(
-    warning.startswith("Price collection failed:")
-    for warning in partial_result["warnings"]
-)
-assert mock_synthesize.call_count == 1
+    assert partial_result["status"] == "partial"
+    assert partial_result["price"] is None
+    assert partial_result["news"] == test_news
+    assert partial_result["answer"] == "뉴스만 사용한 테스트 답변"
+    assert partial_result["sources"] == (
+        "Sources:\n" "- [CoinDesk news 1](https://example.com/eth)"
+    )
+    assert any(
+        warning.startswith("Price collection failed:")
+        for warning in partial_result["warnings"]
+    )
+    assert mock_synthesize.call_count == 1
 
-with (
-    patch("__main__.extract_request", return_value=test_request),
-    patch(
-        "__main__.get_price",
-        side_effect=RuntimeError("price unavailable"),
-    ),
-    patch(
-        "__main__.get_news",
-        side_effect=RuntimeError("RSS unavailable"),
-    ),
-    patch("__main__.synthesize") as mock_synthesize,
-    patch("builtins.print"),
-):
-    failed_result = research("이더리움")
+    with (
+        patch("__main__.extract_request", return_value=test_request),
+        patch(
+            "__main__.get_price",
+            side_effect=RuntimeError("price unavailable"),
+        ),
+        patch(
+            "__main__.get_news",
+            side_effect=RuntimeError("RSS unavailable"),
+        ),
+        patch("__main__.synthesize") as mock_synthesize,
+        patch("builtins.print"),
+    ):
+        failed_result = research("이더리움")
 
-assert failed_result["status"] == "failed"
-assert failed_result["price"] is None
-assert failed_result["news"] == []
-assert failed_result["sources"] == "Sources:\n- No sources collected"
-assert failed_result["answer"].startswith("수집된 근거가 없어")
-assert any(
-    warning.startswith("Price collection failed:")
-    for warning in failed_result["warnings"]
-)
-assert any(
-    warning.startswith("News collection failed:")
-    for warning in failed_result["warnings"]
-)
-mock_synthesize.assert_not_called()
+    assert failed_result["status"] == "failed"
+    assert failed_result["price"] is None
+    assert failed_result["news"] == []
+    assert failed_result["sources"] == "Sources:\n- No sources collected"
+    assert failed_result["answer"].startswith("수집된 근거가 없어")
+    assert any(
+        warning.startswith("Price collection failed:")
+        for warning in failed_result["warnings"]
+    )
+    assert any(
+        warning.startswith("News collection failed:")
+        for warning in failed_result["warnings"]
+    )
+    mock_synthesize.assert_not_called()
 
-print("price-failure self-check passed")
+    print("price-failure self-check passed")
