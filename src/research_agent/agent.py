@@ -3,7 +3,7 @@
 import os
 import json
 import argparse
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from email.utils import parsedate_to_datetime
 from types import SimpleNamespace
 
@@ -305,6 +305,20 @@ def to_utc_iso(value):
     return timestamp.astimezone(timezone.utc).isoformat()
 
 
+def previous_day_window(now):
+    """KST 전날 [시작, 끝) 범위를 UTC datetime 두 개로 반환"""
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ValueError("now must include timezone information")
+
+    KST = timezone(timedelta(hours=9))
+    now_kst = now.astimezone(KST)
+
+    end_kst = now_kst.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_kst = end_kst - timedelta(days=1)
+
+    return start_kst.astimezone(timezone.utc), end_kst.astimezone(timezone.utc)
+
+
 if __name__ == "__main__":
     assert validate_question(" BTC in USD ") == "BTC in USD"
     try:
@@ -567,3 +581,22 @@ if __name__ == "__main__":
     mock_synthesize.assert_not_called()
 
     print("price-failure self-check passed")
+
+    # KST 기준 전날 검증
+    # 10월 8일 09:00 -> 10월 7일 24시간 (KST)
+    test_now = datetime(2026, 10, 8, tzinfo=timezone.utc)
+    start, end = previous_day_window(test_now)
+
+    assert start.isoformat() == "2026-10-06T15:00:00+00:00"
+    assert end.isoformat() == "2026-10-07T15:00:00+00:00"
+    assert end - start == timedelta(days=1)
+
+    # 시간대 없는 입력 거부
+    try:
+        previous_day_window(datetime(2026, 10, 8))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("시간대가 없는 입력이 거부되지 않음")
+
+    print("previous-day window self-check passed")
