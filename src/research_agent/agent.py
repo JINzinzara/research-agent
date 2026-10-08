@@ -333,6 +333,21 @@ def classify_news_period(published_at, start, end):
     return "outside_period"
 
 
+def group_news_by_period(news, start, end):
+    """기사 내용과 출처를 유지하면서 발행 기간별 목록을 나눔"""
+    groups = {
+        "in_period": [],
+        "outside_period": [],
+        "unknown": [],
+    }
+
+    for article in news:
+        period = classify_news_period(article.get("published_at"), start, end)
+        groups[period].append(article)
+
+    return groups
+
+
 if __name__ == "__main__":
     assert validate_question(" BTC in USD ") == "BTC in USD"
     try:
@@ -627,3 +642,43 @@ if __name__ == "__main__":
     assert classify_news_period(None, start, end) == "unknown"
 
     print("news-period self-check passed")
+
+    # 발행 시각별 뉴스 분류
+    test_news = [
+        {
+            "title": "전날 기사",
+            "published_at": start.isoformat(),
+            "source_url": "https://example.com/daily",
+        },
+        {
+            "title": "기간 밖 기사",
+            "published_at": end.isoformat(),
+            "source_url": "https://example.com/outside",
+        },
+        {
+            "title": "발행일 미상",
+            "published_at": None,
+            "source_url": "https://example.com/unknown",
+        },
+        {
+            "title": "발행일 키 없음",
+            "source_url": "https://example.com/missing",
+        },
+    ]
+
+    original_news = json.dumps(test_news, sort_keys=True)
+    grouped = group_news_by_period(test_news, start, end)
+
+    assert grouped == {
+        "in_period": [test_news[0]],
+        "outside_period": [test_news[1]],
+        "unknown": [test_news[2], test_news[3]],
+    }
+    assert json.dumps(test_news, sort_keys=True) == original_news
+    assert group_news_by_period([], start, end) == {
+        "in_period": [],
+        "outside_period": [],
+        "unknown": [],
+    }
+
+    print("news-grouping self-check passed")
