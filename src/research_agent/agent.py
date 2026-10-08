@@ -464,7 +464,7 @@ if __name__ == "__main__":
             }
         ],
     ) == (
-        "Source:\n"
+        "Sources:\n"
         "- [CoinDesk news 1](https://example.com/news)"
         " - Published: Unknown"
     )
@@ -526,7 +526,9 @@ if __name__ == "__main__":
     assert partial_result["news"] == test_news
     assert partial_result["answer"] == "뉴스만 사용한 테스트 답변"
     assert partial_result["sources"] == (
-        "Sources:\n" "- [CoinDesk news 1](https://example.com/eth)"
+        "Sources:\n"
+        "- [CoinDesk news 1](https://example.com/eth)"
+        " - Published: 1970-01-01T00:00:00+00:00"
     )
     assert any(
         warning.startswith("Price collection failed:")
