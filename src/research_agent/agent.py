@@ -186,14 +186,18 @@ def synthesize(question, request_info, price, news):
 
 
 def format_sources(price, news):
-    """Return collected price and news URLs as a Markdown source list"""
+    """Return source links with news publication timestamps."""
     sources = []
 
     if price is not None:
         sources.append(f"- [CoinGecko price]({price['source_url']})")
 
     for idx, article in enumerate(news, start=1):
-        sources.append(f"- [CoinDesk news {idx}]({article['source_url']})")
+        published_at = article.get("published_at") or "Unknown"
+        sources.append(
+            f"- [CoinDesk news {idx}]({article['source_url']})"
+            f" - Published: {published_at}"
+        )
 
     if not sources:
         return "Sources:\n- No sources collected"
@@ -437,16 +441,48 @@ if __name__ == "__main__":
 
     # format_sources test
     source_price = {"source_url": "https://example.com/price"}
-    source_news = [{"source_url": "https://example.com/news"}]
+    source_news = [
+        {
+            "source_url": "https://example.com/news",
+            "published_at": "2026-10-06T23:00:00+00:00",
+        }
+    ]
 
     assert format_sources(source_price, source_news) == (
         "Sources:\n"
         "- [CoinGecko price](https://example.com/price)\n"
         "- [CoinDesk news 1](https://example.com/news)"
+        " - Published: 2026-10-06T23:00:00+00:00"
     )
+    # 발행일이 None 이어도 URL링크 유지
+    assert format_sources(
+        None,
+        [
+            {
+                "source_url": "https://example.com/news",
+                "published_at": None,
+            }
+        ],
+    ) == (
+        "Source:\n"
+        "- [CoinDesk news 1](https://example.com/news)"
+        " - Published: Unknown"
+    )
+    # published_at 키가 없어도 링크 유지
+    assert format_sources(
+        None,
+        [{"source_url": "https://example.com/news"}],
+    ) == (
+        "Sources:\n"
+        "- [CoinDesk news 1](https://example.com/news)"
+        " - Published: Unknown"
+    )
+    # 가격 출처만 있는 경우
     assert format_sources(source_price, []) == (
         "Sources:\n" "- [CoinGecko price](https://example.com/price)"
     )
+    # 가격/뉴스 근거가 모두 없는 경우
+    assert format_sources(None, []) == ("Sources:\n- No sources collected")
     print("sources self-check passed")
 
     # to_utc_iso

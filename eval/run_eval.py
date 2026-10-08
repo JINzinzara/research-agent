@@ -72,7 +72,7 @@ def run_case(case):
 
     finished_at = datetime.now(timezone.utc)
 
-    # 올바른 질문과 수집 조건을 전달하였는가
+    # 요청 및 수집 조건
     mock_extract.assert_called_once_with(case["question"])
     mock_price.assert_called_once_with(
         case["request"]["coin_id"],
@@ -80,12 +80,13 @@ def run_case(case):
     )
     mock_news.assert_called_once_with(case["request"]["news_query"])
 
-    # 수집 근거가 결과에 그대로 반환되었는가
+    # 반환 근거 및 상태
     assert result["request"] == case["request"], case_id
     assert result["price"] == case["price"], case_id
     assert result["news"] == expected_news, case_id
     assert result["status"] == case["expected_status"], case_id
 
+    # 누락·실패 경고
     expected_warnings = case["expected_warning_prefixes"]
     assert isinstance(result["warnings"], list), case_id
     assert len(result["warnings"]) == len(expected_warnings), case_id
@@ -95,7 +96,7 @@ def run_case(case):
             warning.startswith(prefix) for warning in result["warnings"]
         ), f"{case_id}: missing warning {prefix}"
 
-    # 합성 여부 + 전달한 근거와 반환된 답변
+    # 답변 합성 여부 및 전달 근거
     assert isinstance(result["answer"], str), case_id
 
     if case["expect_synthesis"]:
@@ -110,7 +111,7 @@ def run_case(case):
         mock_synthesize.assert_not_called()
         assert result["answer"].startswith("수집된 근거가 없어"), case_id
 
-    # 수집 시각이 UTC인지, 어떤 실행(price, news) 중 생성된건지
+    # 결과 생성 시각: UTC 기준, 이번 실행 범위 안에 있는가
     collected_at = datetime.fromisoformat(result["collected_at"])
 
     assert collected_at.utcoffset() == timedelta(
@@ -120,7 +121,7 @@ def run_case(case):
         started_at <= collected_at <= finished_at
     ), f"{case_id}: collected_at is outside this run"
 
-    # 수집된 근거에 대응하는 전체 출처 목록
+    # 전체 출처 목록 및 기사 발행 시각
     expected_source_lines = []
 
     if case["price"] is not None:
@@ -129,8 +130,10 @@ def run_case(case):
         )
 
     for idx, article in enumerate(case["news"] or [], start=1):
+        published_at = article.get("published_at") or "Unknown"
         expected_source_lines.append(
             f"- [CoinDesk news {idx}]({article['source_url']})"
+            f" - Published: {published_at}"
         )
 
     if expected_source_lines:
