@@ -206,7 +206,10 @@ def format_sources(price, news):
 
 
 def research(question):
-    """Run the research workflow and return its evidence and answer"""
+    """리서치 결과와 KST 전날 기준 기사 분류를 반환"""
+    reference_at = datetime.now(timezone.utc)
+    start, end = previous_day_window(reference_at)
+
     request_info = extract_request(question)
     warnings = []
 
@@ -241,6 +244,8 @@ def research(question):
         if article.get("published_at") is None:
             warnings.append(f"News publication time is unavailable: article {idx}")
 
+    news_groups = group_news_by_period(news, start, end)
+
     if price is None and not news:
         answer = (
             "수집된 근거가 없어 답변을 생성하지 않았습니다. /"
@@ -267,6 +272,11 @@ def research(question):
         "status": status,
         "warnings": warnings,
         "collected_at": datetime.now(timezone.utc).isoformat(),
+        "news_window": {
+            "start": start.isoformat(),
+            "end": end.isoformat(),
+        },
+        "news_groups": news_groups,
     }
 
     print("evidence:")
@@ -682,3 +692,57 @@ if __name__ == "__main__":
     }
 
     print("news-grouping self-check passed")
+
+    # KST start: 10월 8일 23:59:59(UTC: 14:59:59), end: 10월 9일
+    fixed_reference = datetime(2026, 10, 8, 14, 59, 59, tzinfo=timezone.utc)
+    fixed_completed = fixed_reference + timedelta(seconds=2)
+
+    period_request = {
+        "coin_id": "ethereum",
+        "currency": "usd",
+        "news_query": "Ethereum",
+    }
+    period_price = {
+        "price": 100,
+        "change_24h_pct": 1.5,
+        "last_updated_at": fixed_reference.isoformat(),
+        "source_url": "https://example.com/price",
+    }
+    question = "이더리움 가격과 뉴스를 알려줘"
+
+    with (
+        patch("__main__.datetime", wraps=datetime) as mock_clock,
+        patch("__main__.extract_request", return_value=period_request),
+        patch("__main__.get_price", return_value=period_price),
+        patch("__main__.get_news", return_value=test_news),
+        patch(
+            "__main__.synthesize",
+            return_value="테스트 답변",
+        ) as mock_synthesize,
+        patch("builtins.print"),
+    ):
+        mock_clock.now.side_effect = [fixed_reference, fixed_completed]
+        period_result = research(question)
+
+    assert period_result["news_window"] == {
+        "start": "2026-10-06T15:00:00+00:00",
+        "end": "2026-10-07T15:00:00+00:00",
+    }
+    assert period_result["news_groups"] == {
+        "in_period": [test_news[0]],
+        "outside_period": [test_news[1]],
+        "unknown": [test_news[2], test_news[3]],
+    }
+    assert period_result["news"] == test_news
+    assert json.dumps(test_news, sort_keys=True) == original_news
+    assert period_result["collected_at"] == fixed_completed.isoformat()
+    assert period_result["status"] == "partial"
+
+    mock_synthesize.assert_called_once_with(
+        question, period_request, period_price, test_news
+    )
+
+    for article in test_news:
+        assert article["source_url"] in period_result["sources"]
+
+    print("research-period self-check passed")
