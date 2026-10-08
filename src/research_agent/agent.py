@@ -233,6 +233,10 @@ def research(question):
         if price.get("last_updated_at") is None:
             warnings.append("Price update time is unavailable")
 
+    for idx, article in enumerate(news, start=1):
+        if article.get("published_at") is None:
+            warnings.append(f"News publication time is unavailable: article {idx}")
+
     if price is None and not news:
         answer = (
             "수집된 근거가 없어 답변을 생성하지 않았습니다. /"
