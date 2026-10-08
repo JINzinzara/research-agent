@@ -51,9 +51,12 @@ def run_case(case):
             return_value=test_data["news"],
         )
 
-    started_at = datetime.now(timezone.utc)
+    # KST 자정 전 시작하고 자정 후 완료되는 시점 실행 재현
+    fixed_reference = datetime(2026, 10, 8, 14, 59, 59, tzinfo=timezone.utc)
+    fixed_completed = fixed_reference + timedelta(seconds=2)
 
     with (
+        patch.object(agent, "datetime", wraps=datetime) as mock_clock,
         patch.object(
             agent,
             "extract_request",
@@ -68,9 +71,8 @@ def run_case(case):
         ) as mock_synthesize,
         patch("builtins.print"),
     ):
+        mock_clock.now.side_effect = [fixed_reference, fixed_completed]
         result = agent.research(case["question"])
-
-    finished_at = datetime.now(timezone.utc)
 
     # 요청 및 수집 조건
     mock_extract.assert_called_once_with(case["question"])
@@ -119,9 +121,12 @@ def run_case(case):
         0
     ), f"{case_id}: collected_at must be UTC"
     assert (
-        started_at <= collected_at <= finished_at
-    ), f"{case_id}: collected_at is outside this run"
-
+        collected_at == fixed_completed
+    ), f"{case_id}: collected_at must match the completion time"
+    assert result["news_window"] == {
+        "start": "2026-10-06T15:00:00+00:00",
+        "end": "2026-10-07T15:00:00+00:00",
+    }, f"{case_id}: news window must be use the reference time"
     # 전체 출처 목록 및 기사 발행 시각
     expected_source_lines = []
 

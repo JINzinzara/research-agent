@@ -256,6 +256,11 @@ def research(question):
             warnings.append(f"News publication time is unavailable: article {idx}")
 
     news_groups = group_news_by_period(news, start, end)
+    if news and not news_groups["in_period"]:
+        warnings.append(
+            "No news from the previous KST calendar day "
+            "found in the collected RSS evidence"
+        )
 
     if price is None and not news:
         answer = (
