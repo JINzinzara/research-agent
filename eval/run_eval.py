@@ -104,7 +104,8 @@ def run_case(case):
             case["question"],
             case["request"],
             case["price"],
-            expected_news,
+            result["news_window"],
+            result["news_groups"],
         )
         assert result["answer"] == "테스트 답변", case_id
     else:
