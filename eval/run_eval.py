@@ -1,7 +1,9 @@
 import json
+from copy import deepcopy
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from unittest.mock import patch
-from datetime import datetime
+
 
 from research_agent import agent
 
@@ -17,6 +19,12 @@ def load_cases(path):
 
 
 def run_case(case):
+    case_id = case["id"]
+
+    # 함수 내부에서 입력을 변경하여도 원본 기대값 유지
+    test_data = deepcopy(case)
+    expected_news = case["news"] or []
+
     if case["price"] is None:
         price_patch = patch.object(
             agent,
@@ -27,7 +35,7 @@ def run_case(case):
         price_patch = patch.object(
             agent,
             "get_price",
-            return_value=case["price"],
+            return_value=test_data["price"],
         )
 
     if case["news"] is None:
@@ -40,17 +48,19 @@ def run_case(case):
         news_patch = patch.object(
             agent,
             "get_news",
-            return_value=case["news"],
+            return_value=test_data["news"],
         )
+
+    started_at = datetime.now(timezone.utc)
 
     with (
         patch.object(
             agent,
             "extract_request",
-            return_value=case["request"],
-        ),
-        price_patch,
-        news_patch,
+            return_value=test_data["request"],
+        ) as mock_extract,
+        price_patch as mock_price,
+        news_patch as mock_news,
         patch.object(
             agent,
             "synthesize",
@@ -60,31 +70,75 @@ def run_case(case):
     ):
         result = agent.research(case["question"])
 
-    assert result["request"] == case["request"], case["id"]
-    assert result["status"] == case["expected_status"], case["id"]
+    finished_at = datetime.now(timezone.utc)
+
+    # 올바른 질문과 수집 조건을 전달하였는가
+    mock_extract.assert_called_once_with(case["question"])
+    mock_price.assert_called_once_with(
+        case["request"]["coin_id"],
+        case["request"]["currency"],
+    )
+    mock_news.assert_called_once_with(case["request"]["news_query"])
+
+    # 수집 근거가 결과에 그대로 반환되었는가
+    assert result["request"] == case["request"], case_id
+    assert result["price"] == case["price"], case_id
+    assert result["news"] == expected_news, case_id
+    assert result["status"] == case["expected_status"], case_id
 
     expected_warnings = case["expected_warning_prefixes"]
-    assert len(result["warnings"]) == len(expected_warnings), case["id"]
+    assert isinstance(result["warnings"], list), case_id
+    assert len(result["warnings"]) == len(expected_warnings), case_id
 
     for prefix in expected_warnings:
         assert any(
             warning.startswith(prefix) for warning in result["warnings"]
-        ), f"{case['id']}: missing warning {prefix}"
+        ), f"{case_id}: missing warning {prefix}"
 
-    assert mock_synthesize.call_count == int(case["expect_synthesis"]), case["id"]
+    # 합성 여부 + 전달한 근거와 반환된 답변
+    assert isinstance(result["answer"], str), case_id
 
-    assert datetime.fromisoformat(result["collected_at"]).tzinfo is not None
-
-    if case["price"] is None:
-        assert "CoinGecko price" not in result["sources"]
+    if case["expect_synthesis"]:
+        mock_synthesize.assert_called_once_with(
+            case["question"],
+            case["request"],
+            case["price"],
+            expected_news,
+        )
+        assert result["answer"] == "테스트 답변", case_id
     else:
-        assert "CoinGecko price" in result["sources"]
+        mock_synthesize.assert_not_called()
+        assert result["answer"].startswith("수집된 근거가 없어"), case_id
 
-    if case["news"]:
-        assert "CoinDesk news 1" in result["sources"]
+    # 수집 시각이 UTC인지, 어떤 실행(price, news) 중 생성된건지
+    collected_at = datetime.fromisoformat(result["collected_at"])
 
-    if case["price"] is None and not case["news"]:
-        assert result["sources"] == ("Sources:\n- No sources collected")
+    assert collected_at.utcoffset() == timedelta(
+        0
+    ), f"{case_id}: collected_at must be UTC"
+    assert (
+        started_at <= collected_at <= finished_at
+    ), f"{case_id}: collected_at is outside this run"
+
+    # 수집된 근거에 대응하는 전체 출처 목록
+    expected_source_lines = []
+
+    if case["price"] is not None:
+        expected_source_lines.append(
+            f"- [CoinGecko price]({case['price']['source_url']})"
+        )
+
+    for idx, article in enumerate(case["news"] or [], start=1):
+        expected_source_lines.append(
+            f"- [CoinDesk news {idx}]({article['source_url']})"
+        )
+
+    if expected_source_lines:
+        expected_sources = "Sources:\n" + "\n".join(expected_source_lines)
+    else:
+        expected_sources = "Sources:\n- No sources collected"
+
+    assert result["sources"] == expected_sources, case_id
 
     return result
 
