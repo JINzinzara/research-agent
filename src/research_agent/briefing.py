@@ -38,6 +38,15 @@ def format_briefing(result):
     return "\n".join(lines)
 
 
+def save_result(result, result_path):
+    """Save a complete research result without overwriting an existing file"""
+    if not isinstance(result, dict):
+        raise TypeError("result must be a dict")
+    text = json.dumps(result, ensure_ascii=False, indent=2)
+    with Path(result_path).open("x", encoding="utf-8") as file:
+        file.write(text + "\n")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Render a saved research result without external API calls"
