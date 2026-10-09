@@ -1,3 +1,6 @@
+import argparse
+import json
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
 
@@ -33,3 +36,22 @@ def format_briefing(result):
     )
 
     return "\n".join(lines)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Render a saved research result without external API calls"
+    )
+    parser.add_argument("result_path", type=Path)
+    args = parser.parse_args()
+
+    result = json.loads(args.result_path.read_text(encoding="utf-8"))
+
+    if not isinstance(result, dict):
+        raise ValueError("saved result must be a JSON object")
+
+    print(format_briefing(result))
+
+
+if __name__ == "__main__":
+    main()

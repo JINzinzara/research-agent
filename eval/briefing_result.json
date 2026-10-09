@@ -1,0 +1,13 @@
+{
+    "status": "partial",
+    "news_window": {
+    "start": "2026-10-06T15:00:00+00:00",
+    "end": "2026-10-07T15:00:00+00:00"
+    },
+    "collected_at": "2026-10-08T15:00:01+00:00",
+    "warnings": [
+    "News publication time is unavailable: article 1"
+    ],
+    "answer": "저장된 근거로 재현한 테스트 답변",
+    "sources": "Sources:\n- [CoinDesk news 1](https://example.com/eth) - Published: Unknown"
+}
