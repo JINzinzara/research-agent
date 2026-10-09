@@ -17,7 +17,7 @@ from io import BytesIO
 from unittest.mock import patch
 
 from pydantic import BaseModel
-from research_agent.briefing import format_briefing
+from research_agent.briefing import format_briefing, save_result
 
 LLM = OpenAI()
 MODEL = "gpt-6-astra"
@@ -276,7 +276,7 @@ def group_news_by_period(news, start, end):
     return groups
 
 
-def research(question):
+def research(question, result_path=None):
     """리서치 결과와 KST 전날 기준 기사 분류를 반환"""
     reference_at = datetime.now(timezone.utc)
     start, end = previous_day_window(reference_at)
@@ -367,6 +367,8 @@ def research(question):
     )
 
     print("\n" + format_briefing(result))
+    if result_path is not None:
+        save_result(result, result_path)
 
     return result
 
