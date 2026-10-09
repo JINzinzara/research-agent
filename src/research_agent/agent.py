@@ -215,6 +215,100 @@ def format_sources(price, news):
     return "Sources:\n" + "\n".join(sources)
 
 
+def to_utc_iso(value):
+    """Convert Unix seconds or an RSS date string to UTC ISO 8601"""
+    if value is None:
+        return None
+
+    if isinstance(value, (int, float)):
+        timestamp = datetime.fromtimestamp(value, timezone.utc)
+    elif isinstance(value, str):
+        timestamp = parsedate_to_datetime(value)
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+    else:
+        raise TypeError("timestamp must be a number, string or None")
+
+    return timestamp.astimezone(timezone.utc).isoformat()
+
+
+def previous_day_window(now):
+    """KST 전날 [시작, 끝) 범위를 UTC datetime 두 개로 반환
+    기사 발행 시각이 해당 범위 안에 속하는지 판정을 위한 기준"""
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ValueError("now must include timezone information")
+
+    KST = timezone(timedelta(hours=9))
+    now_kst = now.astimezone(KST)
+
+    end_kst = now_kst.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_kst = end_kst - timedelta(days=1)
+
+    return start_kst.astimezone(timezone.utc), end_kst.astimezone(timezone.utc)
+
+
+def classify_news_period(published_at, start, end):
+    """UTC ISO 발행 시각을 기간 안·밖·미상으로 구분"""
+    # isoformat: datetime -> string, fromisoformat: string -> datetime
+    if published_at is None:
+        return "unknown"
+
+    published = datetime.fromisoformat(published_at)
+    if start <= published < end:
+        return "in_period"
+
+    return "outside_period"
+
+
+def group_news_by_period(news, start, end):
+    """기사 내용과 출처를 유지하면서 발행 기간별 목록을 나눔"""
+    groups = {
+        "in_period": [],
+        "outside_period": [],
+        "unknown": [],
+    }
+
+    for article in news:
+        period = classify_news_period(article.get("published_at"), start, end)
+        groups[period].append(article)
+
+    return groups
+
+
+def format_briefing(result):
+    """Return briefing text with explicit status, timestamps and warnings"""
+    kst = timezone(timedelta(hours=9))
+
+    start_kst = datetime.fromisoformat(result["news_window"]["start"]).astimezone(kst)
+    end_kst = datetime.fromisoformat(result["news_window"]["end"]).astimezone(kst)
+    generated_kst = datetime.fromisoformat(result["collected_at"]).astimezone(kst)
+
+    lines = [
+        f"Status: {result['status']}",
+        (f"News window (KST): " f"[{start_kst.isoformat()}, {end_kst.isoformat()})"),
+        f"Generated at (KST): {generated_kst.isoformat()}",
+        "",
+        "Warnings:",
+    ]
+
+    if result["warnings"]:
+        for warning in result["warnings"]:
+            lines.append(f"- {warning}")
+    else:
+        lines.append("- No warnings")
+
+    lines.extend(
+        [
+            "",
+            result["answer"],
+            "",
+            result["sources"],
+        ]
+    )
+
+    return "\n".join(lines)
+
+
 def research(question):
     """리서치 결과와 KST 전날 기준 기사 분류를 반환"""
     reference_at = datetime.now(timezone.utc)
@@ -305,70 +399,9 @@ def research(question):
         )
     )
 
-    print("\nanswer:")
-    print(answer + "\n\n" + sources)
+    print("\n" + format_briefing(result))
 
     return result
-
-
-def to_utc_iso(value):
-    """Convert Unix seconds or an RSS date string to UTC ISO 8601"""
-    if value is None:
-        return None
-
-    if isinstance(value, (int, float)):
-        timestamp = datetime.fromtimestamp(value, timezone.utc)
-    elif isinstance(value, str):
-        timestamp = parsedate_to_datetime(value)
-        if timestamp.tzinfo is None:
-            timestamp = timestamp.replace(tzinfo=timezone.utc)
-    else:
-        raise TypeError("timestamp must be a number, string or None")
-
-    return timestamp.astimezone(timezone.utc).isoformat()
-
-
-def previous_day_window(now):
-    """KST 전날 [시작, 끝) 범위를 UTC datetime 두 개로 반환
-    기사 발행 시각이 해당 범위 안에 속하는지 판정을 위한 기준"""
-    if now.tzinfo is None or now.utcoffset() is None:
-        raise ValueError("now must include timezone information")
-
-    KST = timezone(timedelta(hours=9))
-    now_kst = now.astimezone(KST)
-
-    end_kst = now_kst.replace(hour=0, minute=0, second=0, microsecond=0)
-    start_kst = end_kst - timedelta(days=1)
-
-    return start_kst.astimezone(timezone.utc), end_kst.astimezone(timezone.utc)
-
-
-def classify_news_period(published_at, start, end):
-    """UTC ISO 발행 시각을 기간 안·밖·미상으로 구분"""
-    # isoformat: datetime -> string, fromisoformat: string -> datetime
-    if published_at is None:
-        return "unknown"
-
-    published = datetime.fromisoformat(published_at)
-    if start <= published < end:
-        return "in_period"
-
-    return "outside_period"
-
-
-def group_news_by_period(news, start, end):
-    """기사 내용과 출처를 유지하면서 발행 기간별 목록을 나눔"""
-    groups = {
-        "in_period": [],
-        "outside_period": [],
-        "unknown": [],
-    }
-
-    for article in news:
-        period = classify_news_period(article.get("published_at"), start, end)
-        groups[period].append(article)
-
-    return groups
 
 
 if __name__ == "__main__":
@@ -748,7 +781,7 @@ if __name__ == "__main__":
             "__main__.synthesize",
             return_value="테스트 답변",
         ) as mock_synthesize,
-        patch("builtins.print"),
+        patch("builtins.print") as mock_briefing_print,
     ):
         mock_clock.now.side_effect = [fixed_reference, fixed_completed]
         period_result = research(question)
@@ -778,4 +811,87 @@ if __name__ == "__main__":
     for article in test_news:
         assert article["source_url"] in period_result["sources"]
 
+    mock_briefing_print.assert_any_call("\n" + format_briefing(period_result))
+
     print("research-period self-check passed")
+    print("briefing-output self-check passed")
+
+    briefing_fixture = {
+        "status": "partial",
+        "news_window": {
+            "start": "2026-10-06T15:00:00+00:00",
+            "end": "2026-10-07T15:00:00+00:00",
+        },
+        "collected_at": "2026-10-08T15:00:01+00:00",
+        "warnings": [
+            "News publication time is unavailable: article 1",
+            (
+                "No news from the previous KST calendar day "
+                "found in the collected RSS evidence"
+            ),
+        ],
+        "answer": "테스트 답변",
+        "sources": (
+            "Sources:\n"
+            "- [CoinDesk news 1](https://example.com/eth)"
+            " - Published: Unknown"
+        ),
+    }
+
+    original_briefing = json.dumps(briefing_fixture, sort_keys=True)
+    rendered = format_briefing(briefing_fixture)
+
+    assert rendered == (
+        "Status: partial\n"
+        "News window (KST): "
+        "[2026-10-07T00:00:00+09:00, 2026-10-08T00:00:00+09:00)\n"
+        "Generated at (KST): 2026-10-09T00:00:01+09:00\n"
+        "\n"
+        "Warnings:\n"
+        "- News publication time is unavailable: article 1\n"
+        "- No news from the previous KST calendar day "
+        "found in the collected RSS evidence\n"
+        "\n"
+        "테스트 답변\n"
+        "\n"
+        "Sources:\n"
+        "- [CoinDesk news 1](https://example.com/eth)"
+        " - Published: Unknown"
+    )
+
+    assert json.dumps(briefing_fixture, sort_keys=True) == original_briefing
+
+    quiet_fixture = {
+        **briefing_fixture,
+        "status": "ok",
+        "warnings": [],
+        "sources": (
+            "Sources:\n"
+            "- [CoinDesk news 1](https://example.com/daily)"
+            " - Published: 2026-10-06T23:00:00+00:00"
+        ),
+    }
+    quiet_text = format_briefing(quiet_fixture)
+    assert quiet_text.startswith("Status: ok\n")
+    assert "\nWarnings:\n- No warnings\n\n" in quiet_text
+    assert quiet_text.endswith(quiet_fixture["sources"])
+
+    failed_fixture = {
+        **briefing_fixture,
+        "status": "failed",
+        "warnings": [
+            "Price collection failed: RuntimeError",
+            "News collection failed: RuntimeError",
+        ],
+        "answer": "수집된 근거가 없어 답변을 생성하지 않았습니다.",
+        "sources": "Sources:\n- No sources collected",
+    }
+    failed_text = format_briefing(failed_fixture)
+    assert failed_text.startswith("Status: failed\n")
+    for warning in failed_fixture["warnings"]:
+        assert f"- {warning}" in failed_text
+    assert failed_text.endswith(
+        failed_fixture["answer"] + "\n\n" + failed_fixture["sources"]
+    )
+
+    print("format-briefing self-check passed")
