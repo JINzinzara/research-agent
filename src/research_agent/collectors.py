@@ -1,4 +1,4 @@
-"""Collect CoinGecko Demo prices and period-prioritized CoinDesk RSS articles."""
+"""Collect CoinGecko Demo prices and period-prioritized CoinDesk RSS articles"""
 
 import os
 from functools import lru_cache
@@ -13,7 +13,7 @@ MAX_NEWS_ITEMS = 5
 
 @lru_cache(maxsize=1)
 def _price_client():
-    """Create the Demo client only when a price request needs authentication."""
+    """Create the Demo client only when a price request needs authentication"""
     from coingecko_sdk import Coingecko
 
     return Coingecko(
@@ -25,7 +25,7 @@ def _price_client():
 
 
 def get_price(coin_id, currency):
-    """Fetch a quoted price, rolling 24-hour change, update time, and source URL."""
+    """Fetch a quoted price, rolling 24-hour change, update time, and source URL"""
     response = _price_client().simple.price.get(
         ids=coin_id,
         vs_currencies=currency,
@@ -49,7 +49,7 @@ def get_price(coin_id, currency):
 
 
 def get_news(news_query, start, end):
-    """Fetch up to five matching RSS articles, prioritizing the requested window."""
+    """Fetch up to five matching RSS articles, prioritizing the requested window"""
     request = Request(RSS_URL, headers={"User-Agent": "research-agent/0.1"})
     with urlopen(request, timeout=10) as response:
         root = ET.fromstring(response.read())

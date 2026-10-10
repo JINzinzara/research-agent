@@ -1,4 +1,4 @@
-"""Run live research and display its evidence and briefing."""
+"""Run live research and display its evidence and briefing"""
 
 import argparse
 import json
@@ -8,7 +8,7 @@ from research_agent.briefing import format_briefing
 
 
 def main():
-    """Parse a question and optional output path, then run and display research."""
+    """Parse a question and optional output path, then run and display research"""
     parser = argparse.ArgumentParser(
         description="Run research and optionally save its result"
     )

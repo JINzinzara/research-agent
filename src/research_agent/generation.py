@@ -1,4 +1,4 @@
-"""Validate research requests and generate grounded bilingual answers with OpenAI."""
+"""Validate research requests and generate grounded bilingual answers with OpenAI"""
 
 import json
 from functools import lru_cache
@@ -12,14 +12,14 @@ CURRENCIES = {"usd", "krw"}
 
 @lru_cache(maxsize=1)
 def _llm_client():
-    """Create the OpenAI client only when planning or synthesis requires it."""
+    """Create the OpenAI client only when planning or synthesis requires it"""
     from openai import OpenAI
 
     return OpenAI()
 
 
 def validate_question(question):
-    """Return a trimmed non-empty question or reject its type and blank input."""
+    """Return a trimmed non-empty question or reject its type and blank input"""
     if not isinstance(question, str):
         raise TypeError("Question type must be string")
     question = question.strip()
@@ -29,7 +29,7 @@ def validate_question(question):
 
 
 def validate_plan(planned):
-    """Require a supported coin, currency, and matching canonical news query."""
+    """Require a supported coin, currency, and matching canonical news query"""
     if not isinstance(planned, dict):
         raise TypeError("planned type must be dict")
     coin_id = planned.get("coin_id")
@@ -43,7 +43,7 @@ def validate_plan(planned):
 
 
 class PlanIn(BaseModel):
-    """Define the structured model response before canonical value validation."""
+    """Define the structured model response before canonical value validation"""
 
     coin_id: str
     currency: str
@@ -51,7 +51,7 @@ class PlanIn(BaseModel):
 
 
 def extract_request(question):
-    """Extract and validate canonical asset, currency, and news query values."""
+    """Extract and validate canonical asset, currency, and news query values"""
     question = validate_question(question)
     response = _llm_client().responses.parse(
         model=MODEL,
@@ -75,7 +75,7 @@ def extract_request(question):
 
 
 def synthesize(question, request_info, price, news_window, news_groups):
-    """Generate Korean and English summaries using only the supplied evidence."""
+    """Generate Korean and English summaries using only the supplied evidence"""
     evidence = {
         "question": validate_question(question),
         "request": validate_plan(request_info),

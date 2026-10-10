@@ -1,4 +1,4 @@
-"""Format research evidence and briefings, save JSON, and replay saved results."""
+"""Format research evidence and briefings, save JSON, and replay saved results"""
 
 import argparse
 import json
@@ -9,7 +9,7 @@ from research_agent.periods import KST
 
 
 def format_sources(price, news):
-    """Format source URLs with publication times, keeping links when times are missing."""
+    """Format source URLs with publication times, keeping links when times are missing"""
     sources = []
     if price is not None:
         sources.append(f"- [CoinGecko price]({price['source_url']})")
@@ -23,7 +23,7 @@ def format_sources(price, news):
 
 
 def format_briefing(result):
-    """Render status, KST window, generation time, warnings, answer, and sources."""
+    """Render status, KST window, generation time, warnings, answer, and sources"""
     start_kst = datetime.fromisoformat(result["news_window"]["start"]).astimezone(KST)
     end_kst = datetime.fromisoformat(result["news_window"]["end"]).astimezone(KST)
     generated_kst = datetime.fromisoformat(result["collected_at"]).astimezone(KST)
@@ -42,7 +42,7 @@ def format_briefing(result):
 
 
 def save_result(result, result_path):
-    """Save a result as UTF-8 JSON, rejecting non-dicts and existing files."""
+    """Save a result as UTF-8 JSON, rejecting non-dicts and existing files"""
     if not isinstance(result, dict):
         raise TypeError("result must be a dict")
     text = json.dumps(result, ensure_ascii=False, indent=2)
@@ -51,7 +51,7 @@ def save_result(result, result_path):
 
 
 def main():
-    """Render one saved JSON result without authentication or external calls."""
+    """Render one saved JSON result without authentication or external calls"""
     parser = argparse.ArgumentParser(
         description="Render a saved research result without external API calls"
     )

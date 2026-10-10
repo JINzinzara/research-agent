@@ -1,4 +1,4 @@
-"""Run deterministic pipeline evaluations with mocked collectors and synthesis."""
+"""Run deterministic pipeline evaluations with mocked collectors and synthesis"""
 
 import json
 from copy import deepcopy
@@ -12,7 +12,7 @@ CASES_PATH = Path(__file__).with_name("cases.jsonl")
 
 
 def load_cases(path):
-    """Load non-empty JSONL evaluation records from a UTF-8 file."""
+    """Load non-empty JSONL evaluation records from a UTF-8 file"""
     return [
         json.loads(line)
         for line in path.read_text(encoding="utf-8").splitlines()
@@ -21,7 +21,7 @@ def load_cases(path):
 
 
 def run_case(case):
-    """Check one pipeline fixture using fixed clocks and mocked external calls."""
+    """Check one pipeline fixture using fixed clocks and mocked external calls"""
     case_id = case["id"]
 
     # Preserve expected values if a function mutates its inputs.
@@ -159,7 +159,6 @@ def run_case(case):
 
 
 def main():
-    """Run all fixture evaluations and print their pass counts."""
     cases = load_cases(CASES_PATH)
 
     for case in cases:

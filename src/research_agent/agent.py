@@ -1,4 +1,4 @@
-"""Coordinate evidence collection, grounded synthesis, and optional result storage."""
+"""Coordinate evidence collection, grounded synthesis, and optional result storage"""
 
 from datetime import datetime, timezone
 
@@ -9,7 +9,7 @@ from research_agent.periods import group_news_by_period, research_news_window
 
 
 def research(question, result_path=None):
-    """Return a complete research result and optionally save it without overwriting."""
+    """Return a complete research result and optionally save it without overwriting"""
     reference_at = datetime.now(timezone.utc)
     start, end = research_news_window(reference_at)
     news_window = {"start": start.isoformat(), "end": end.isoformat()}

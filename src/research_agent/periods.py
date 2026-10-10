@@ -1,4 +1,4 @@
-"""Normalize timestamps and classify articles against an explicit news window."""
+"""Normalize timestamps and classify articles against an explicit news window"""
 
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
@@ -7,7 +7,7 @@ KST = timezone(timedelta(hours=9))
 
 
 def to_utc_iso(value):
-    """Convert Unix seconds or an RSS date to UTC ISO 8601, preserving missing times."""
+    """Convert Unix seconds or an RSS date to UTC ISO 8601, preserving missing times"""
     if value is None:
         return None
     if isinstance(value, (int, float)):
@@ -22,7 +22,7 @@ def to_utc_iso(value):
 
 
 def research_news_window(reference_at):
-    """Return UTC bounds from previous KST midnight to the fixed research start."""
+    """Return UTC bounds from previous KST midnight to the fixed research start"""
     if reference_at.tzinfo is None or reference_at.utcoffset() is None:
         raise ValueError("reference_at must include timezone information")
     today_midnight = reference_at.astimezone(KST).replace(
@@ -33,7 +33,7 @@ def research_news_window(reference_at):
 
 
 def classify_news_period(published_at, start, end):
-    """Classify a UTC ISO publication time using inclusive start and exclusive end."""
+    """Classify a UTC ISO publication time using inclusive start and exclusive end"""
     if published_at is None:
         return "unknown"
     published = datetime.fromisoformat(published_at)
@@ -41,7 +41,7 @@ def classify_news_period(published_at, start, end):
 
 
 def group_news_by_period(news, start, end):
-    """Group articles by publication time without changing their content or sources."""
+    """Group articles by publication time without changing their content or sources"""
     groups = {"in_period": [], "outside_period": [], "unknown": []}
     for article in news:
         period = classify_news_period(article.get("published_at"), start, end)
