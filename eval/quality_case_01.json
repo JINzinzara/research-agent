@@ -1,0 +1,33 @@
+{
+    "id": "price_missing_metadata",
+    "data_kind": "synthetic",
+    "question": "비트코인 가격을 USD로 요약해줘.",
+    "evidence": {
+    "request": {
+        "coin_id": "bitcoin",
+        "currency": "usd",
+        "news_query": "Bitcoin"
+    },
+    "price": {
+        "price": 100,
+        "change_24h_pct": null,
+        "last_updated_at": null,
+        "source_url": "https://example.com/fixture/bitcoin-price"
+    },
+    "news": []
+    },
+    "expected": {
+    "must_state": [
+        "The quoted Bitcoin price in the provided evidence is 100 USD.",
+        "The 24-hour price change and price update time are unavailable.",
+        "The collected evidence contains no news articles."
+    ],
+    "must_not_claim": [
+        "Invents a 24-hour price change or price update time.",
+        "Presents 100 USD as the latest Bitcoin price despite the missing update time.",
+        "Claims that no Bitcoin-related news occurred merely because no articles were collected."
+    ]
+    },
+    "actual_answer": "**한국어**\n- 비트코인 제공 시세: **100 USD**\n- 최근 24시간 가격 변동률과 시세 업데이트 시각은 제공되지 않았습니다.\n- 전일 뉴스 구간인 **2026년 10월 9일 KST(00:00~다음 날 00:00)**에 해당하는 기사는 수집된 자료에서 발견되지 않았습니다. 이는 뉴스가 없었다는 뜻은 아닙니다.\n- 제공 시세는 위 뉴스 구간의 종가를 의미하지 않습니다.\n\n**English**\n- Quoted Bitcoin price: **USD 100**\n- The rolling 24-hour price change and price update time were not provided.\n- No articles for the previous KST calendar day, **October 9, 2026 (00:00 to 00:00 the next day)**, were found in the collected evidence. This does not mean no news occurred.\n- The quoted price is not identified as the closing price for that news window.",
+    "review_status": "passed"
+}

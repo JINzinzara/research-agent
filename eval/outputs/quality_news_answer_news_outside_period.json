@@ -1,0 +1,44 @@
+{
+  "id": "news_outside_period",
+  "model": "gpt-6-astra",
+  "input": {
+    "question": "비트코인의 전일 KST 뉴스와 제공된 가격 정보를 요약해줘.",
+    "request": {
+      "coin_id": "bitcoin",
+      "currency": "usd",
+      "news_query": "Bitcoin"
+    },
+    "price": null,
+    "news_window": {
+      "start": "2026-10-08T15:00:00+00:00",
+      "end": "2026-10-09T15:00:00+00:00"
+    },
+    "news_groups": {
+      "in_period": [],
+      "outside_period": [
+        {
+          "title": "Bitcoin research note released",
+          "summary": "An educational Bitcoin research note was released. No price impact was reported.",
+          "source_url": "https://example.com/fixture/bitcoin-note",
+          "published_at": "2026-10-09T15:00:00+00:00"
+        }
+      ],
+      "unknown": []
+    }
+  },
+  "expected": {
+    "must_state": [
+      "Labels the article as out-of-period reference material, published at the excluded end boundary.",
+      "States that no in-period articles were found in the collected evidence.",
+      "States that price information was not provided."
+    ],
+    "must_not_claim": [
+      "Includes the end-boundary article as news from the previous KST calendar day.",
+      "Claims that no actual news events occurred during the specified period.",
+      "Invents a price or an unsupported price effect."
+    ]
+  },
+  "actual_answer": "### 한국어\n- **전일 KST 뉴스 기간:** 2026년 10월 9일 00:00부터 10월 10일 00:00 직전까지.\n- **기간 내 뉴스:** 수집된 근거에서 해당 기간의 기사는 발견되지 않았습니다. 이는 그 기간에 뉴스가 없었다는 뜻은 아닙니다.\n- **기간 외 참고 자료:** 「Bitcoin research note released」는 10월 10일 00:00 KST에 발행되어 전일 뉴스 기간에 포함되지 않습니다. 제공된 요약에 따르면 교육용 비트코인 연구 노트가 공개되었으며, 가격 영향은 보고되지 않았습니다.\n- **가격 정보(USD):** 제공되지 않아 현재 인용 가격과 최근 24시간 가격 변동률을 요약할 수 없습니다. 최근 24시간 가격 변동은 위의 KST 달력일 기준 뉴스 기간과 별개입니다.\n\n### English\n- **Previous-day KST news window:** October 9, 2026, 00:00 to October 10, 2026, 00:00, excluding the endpoint.\n- **In-period news:** No articles from this period were found in the collected evidence. This does not mean that no news occurred.\n- **Out-of-period reference:** “Bitcoin research note released” was published at 00:00 KST on October 10, outside the news window. The supplied summary says an educational Bitcoin research note was released and no price impact was reported.\n- **Price information (USD):** No price data was provided, so a quoted price or rolling 24-hour price change cannot be summarized. A rolling 24-hour price change is distinct from the KST calendar-day news window above.",
+  "review_status": "pending_review",
+  "generated_at": "2026-10-10T08:28:16.063524+00:00"
+}

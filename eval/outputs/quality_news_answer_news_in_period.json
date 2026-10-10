@@ -1,0 +1,43 @@
+{
+  "id": "news_in_period",
+  "model": "gpt-6-astra",
+  "input": {
+    "question": "비트코인의 전일 KST 뉴스와 제공된 가격 정보를 요약해줘.",
+    "request": {
+      "coin_id": "bitcoin",
+      "currency": "usd",
+      "news_query": "Bitcoin"
+    },
+    "price": null,
+    "news_window": {
+      "start": "2026-10-08T15:00:00+00:00",
+      "end": "2026-10-09T15:00:00+00:00"
+    },
+    "news_groups": {
+      "in_period": [
+        {
+          "title": "Bitcoin research note released",
+          "summary": "An educational Bitcoin research note was released. No price impact was reported.",
+          "source_url": "https://example.com/fixture/bitcoin-note",
+          "published_at": "2026-10-09T03:00:00+00:00"
+        }
+      ],
+      "outside_period": [],
+      "unknown": []
+    }
+  },
+  "expected": {
+    "must_state": [
+      "Summarizes the release of the provided educational Bitcoin research note as news within the specified KST period.",
+      "States that price information was not provided."
+    ],
+    "must_not_claim": [
+      "Invents details or price effects not supported by the article.",
+      "Claims that no articles from the specified period were found despite the provided in-period article.",
+      "Invents a price."
+    ]
+  },
+  "actual_answer": "## 한국어\n- **전일 뉴스 범위(KST):** 2026년 10월 9일 00:00부터 10월 10일 00:00 직전까지.\n- **수집된 기간 내 뉴스 1건:** 「Bitcoin research note released」 — 비트코인 교육용 연구 노트가 공개되었습니다. 발행 시각은 **10월 9일 12:00 KST**이며, 제공된 요약에는 가격 영향이 보고되지 않았다고 명시되어 있습니다.\n- **가격 정보(USD):** 제공되지 않아 인용 가격과 최근 24시간 가격 변동률을 요약할 수 없습니다. 최근 24시간 가격 변동률은 위의 전일 KST 뉴스 범위와 별개의 기준입니다.\n\n## English\n- **Previous-day news window (KST):** October 9, 2026, from 00:00 up to, but not including, October 10 at 00:00.\n- **One collected article within the window:** “Bitcoin research note released” — An educational Bitcoin research note was released at **12:00 KST on October 9**. The supplied summary states that no price impact was reported.\n- **Price information (USD):** Not provided, so neither a quoted price nor a rolling 24-hour price change can be summarized. The rolling 24-hour change is distinct from the previous KST calendar-day news window above.",
+  "review_status": "pending_review",
+  "generated_at": "2026-10-10T08:28:08.966410+00:00"
+}

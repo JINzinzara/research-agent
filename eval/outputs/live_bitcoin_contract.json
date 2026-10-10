@@ -1,0 +1,68 @@
+{
+  "request": {
+    "coin_id": "bitcoin",
+    "currency": "usd",
+    "news_query": "Bitcoin"
+  },
+  "price": {
+    "price": 82798.0,
+    "change_24h_pct": -0.5276218775548456,
+    "last_updated_at": "2026-10-10T12:06:52+00:00",
+    "source_url": "https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=bitcoin&include_24hr_change=true&include_last_updated_at=true"
+  },
+  "news": [
+    {
+      "title": "One year after 10/10, bitcoin and ether liquidity have rebuilt, but other altcoins still face risks",
+      "summary": "Bitcoin and ether order books are deeper than before the crash, while altcoin liquidity keeps eroding and spot trading remains well below its October 2025 peak.",
+      "source_url": "https://www.coindesk.com/markets/2026/10/10/one-year-after-10-10-bitcoin-and-ether-liquidity-have-rebuilt-but-other-altcoins-still-face-risks",
+      "published_at": "2026-10-10T12:00:00+00:00"
+    },
+    {
+      "title": "Bitcoin's $19 billion wake-up call: One-year after flash crash, has crypto learned anything?",
+      "summary": "The Oct. 10, 2025 flash crash wiped out billions in leveraged crypto bets. Traders now have better tools to spot risks, but the forces behind the selloff remain.",
+      "source_url": "https://www.coindesk.com/markets/2026/10/10/bitcoin-s-usd19-billion-wake-up-call-one-year-later-has-crypto-learned-anything",
+      "published_at": "2026-10-10T11:00:00+00:00"
+    },
+    {
+      "title": "Bitcoin's volatility has plunged, but extreme price swings are more frequent than in 2018",
+      "summary": "CoinDesk analysis finds 10 unusually large trading days in 2026, raising questions about how investors measure risk in an increasingly institutional crypto market.",
+      "source_url": "https://www.coindesk.com/markets/2026/10/09/bitcoin-s-volatility-has-plunged-but-extreme-price-swings-are-more-frequent-than-in-2018",
+      "published_at": "2026-10-10T05:43:00+00:00"
+    }
+  ],
+  "answer": "## 한국어\n\n**비트코인(BTC) 가격**\n- **82,798.00 USD**\n- 최근 **24시간 변동률: -0.53%**\n- 가격 업데이트: **2026년 10월 10일 21:06:52 KST**\n\n**전일 KST 뉴스 — 2026년 10월 9일**\n- 대상 기간: 10월 9일 00:00부터 10월 10일 00:00 직전까지(KST).\n- **수집된 자료에서 해당 기간에 게시된 기사는 확인되지 않았습니다.** 이는 그날 뉴스가 없었다는 의미는 아닙니다.\n\n**기간 외 참고 자료 — 모두 10월 10일 KST 게시**\n- **14:43:** 비트코인 변동성은 낮아졌지만, 극단적인 가격 변동은 2018년보다 더 빈번하다는 분석. 기사 요약은 2026년에 이례적으로 큰 변동을 보인 거래일이 10일이라고 설명합니다.\n- **20:00:** 2025년 10월 10일 급락 1년 후를 돌아보며, 위험 탐지 도구는 개선됐으나 당시 매도세를 유발했던 요인들은 여전히 남아 있다는 평가.\n- **21:00:** 비트코인과 이더의 호가창 유동성은 당시 급락 이전보다 깊어졌지만, 알트코인 유동성은 약화되고 현물 거래는 2025년 10월 정점에 크게 못 미친다는 보도.\n\n*위 가격과 최근 24시간 변동률은 전일 KST 뉴스 기간의 종가·일간 수익률이 아닙니다.*\n\n## English\n\n**Bitcoin (BTC) price**\n- **USD 82,798.00**\n- **Rolling 24-hour change: -0.53%**\n- Last updated: **October 10, 2026, at 21:06:52 KST**\n\n**Previous KST calendar-day news — October 9, 2026**\n- Window: October 9 at 00:00 up to, but not including, October 10 at 00:00 KST.\n- **No articles published within this window were found in the collected evidence.** This does not mean no news occurred that day.\n\n**Out-of-period reference material — all published October 10 KST**\n- **14:43:** An analysis says Bitcoin’s volatility has declined, yet extreme price swings are more frequent than in 2018, identifying 10 unusually large trading days in 2026.\n- **20:00:** A retrospective on the October 10, 2025 flash crash says risk-detection tools have improved, but the forces behind that selloff remain.\n- **21:00:** A report says Bitcoin and ether order books are deeper than before that crash, while altcoin liquidity continues to weaken and spot trading remains well below its October 2025 peak.\n\n*The quoted price and rolling 24-hour change are not the closing price or daily return for the previous KST news window.*",
+  "sources": "Sources:\n- [CoinGecko price](https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=bitcoin&include_24hr_change=true&include_last_updated_at=true)\n- [CoinDesk news 1](https://www.coindesk.com/markets/2026/10/10/one-year-after-10-10-bitcoin-and-ether-liquidity-have-rebuilt-but-other-altcoins-still-face-risks) - Published: 2026-10-10T12:00:00+00:00\n- [CoinDesk news 2](https://www.coindesk.com/markets/2026/10/10/bitcoin-s-usd19-billion-wake-up-call-one-year-later-has-crypto-learned-anything) - Published: 2026-10-10T11:00:00+00:00\n- [CoinDesk news 3](https://www.coindesk.com/markets/2026/10/09/bitcoin-s-volatility-has-plunged-but-extreme-price-swings-are-more-frequent-than-in-2018) - Published: 2026-10-10T05:43:00+00:00",
+  "status": "partial",
+  "warnings": [
+    "No news from the previous KST calendar day found in the collected RSS evidence"
+  ],
+  "collected_at": "2026-10-10T12:08:21.314204+00:00",
+  "news_window": {
+    "start": "2026-10-08T15:00:00+00:00",
+    "end": "2026-10-09T15:00:00+00:00"
+  },
+  "news_groups": {
+    "in_period": [],
+    "outside_period": [
+      {
+        "title": "One year after 10/10, bitcoin and ether liquidity have rebuilt, but other altcoins still face risks",
+        "summary": "Bitcoin and ether order books are deeper than before the crash, while altcoin liquidity keeps eroding and spot trading remains well below its October 2025 peak.",
+        "source_url": "https://www.coindesk.com/markets/2026/10/10/one-year-after-10-10-bitcoin-and-ether-liquidity-have-rebuilt-but-other-altcoins-still-face-risks",
+        "published_at": "2026-10-10T12:00:00+00:00"
+      },
+      {
+        "title": "Bitcoin's $19 billion wake-up call: One-year after flash crash, has crypto learned anything?",
+        "summary": "The Oct. 10, 2025 flash crash wiped out billions in leveraged crypto bets. Traders now have better tools to spot risks, but the forces behind the selloff remain.",
+        "source_url": "https://www.coindesk.com/markets/2026/10/10/bitcoin-s-usd19-billion-wake-up-call-one-year-later-has-crypto-learned-anything",
+        "published_at": "2026-10-10T11:00:00+00:00"
+      },
+      {
+        "title": "Bitcoin's volatility has plunged, but extreme price swings are more frequent than in 2018",
+        "summary": "CoinDesk analysis finds 10 unusually large trading days in 2026, raising questions about how investors measure risk in an increasingly institutional crypto market.",
+        "source_url": "https://www.coindesk.com/markets/2026/10/09/bitcoin-s-volatility-has-plunged-but-extreme-price-swings-are-more-frequent-than-in-2018",
+        "published_at": "2026-10-10T05:43:00+00:00"
+      }
+    ],
+    "unknown": []
+  }
+}

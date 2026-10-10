@@ -1,0 +1,118 @@
+[
+    {
+    "id": "news_in_period",
+    "data_kind": "synthetic",
+    "question": "비트코인의 전일 KST 뉴스와 제공된 가격 정보를 요약해줘.",
+    "news_window": {
+        "start": "2026-10-08T15:00:00+00:00",
+        "end": "2026-10-09T15:00:00+00:00"
+    },
+    "evidence": {
+        "request": {
+        "coin_id": "bitcoin",
+        "currency": "usd",
+        "news_query": "Bitcoin"
+        },
+        "price": null,
+        "news": [
+        {
+            "title": "Bitcoin research note released",
+            "summary": "An educational Bitcoin research note was released. No price impact was reported.",
+            "source_url": "https://example.com/fixture/bitcoin-note",
+            "published_at": "2026-10-09T03:00:00+00:00"
+        }
+        ]
+    },
+    "expected": {
+        "must_state": [
+            "Summarizes the release of the provided educational Bitcoin research note as news within the specified KST period.",
+            "States that price information was not provided."
+        ],
+        "must_not_claim": [
+            "Invents details or price effects not supported by the article.",
+            "Claims that no articles from the specified period were found despite the provided in-period article.",
+            "Invents a price."
+        ]
+    },
+    "actual_answer": null,
+    "review_status": "not_run"
+    },
+    {
+    "id": "news_outside_period",
+    "data_kind": "synthetic",
+    "question": "비트코인의 전일 KST 뉴스와 제공된 가격 정보를 요약해줘.",
+    "news_window": {
+        "start": "2026-10-08T15:00:00+00:00",
+        "end": "2026-10-09T15:00:00+00:00"
+    },
+    "evidence": {
+        "request": {
+        "coin_id": "bitcoin",
+        "currency": "usd",
+        "news_query": "Bitcoin"
+        },
+        "price": null,
+        "news": [
+        {
+            "title": "Bitcoin research note released",
+            "summary": "An educational Bitcoin research note was released. No price impact was reported.",
+            "source_url": "https://example.com/fixture/bitcoin-note",
+            "published_at": "2026-10-09T15:00:00+00:00"
+        }
+        ]
+    },
+    "expected": {
+        "must_state": [
+            "Labels the article as out-of-period reference material, published at the excluded end boundary.",
+            "States that no in-period articles were found in the collected evidence.",
+            "States that price information was not provided."
+        ],
+        "must_not_claim": [
+            "Includes the end-boundary article as news from the previous KST calendar day.",
+            "Claims that no actual news events occurred during the specified period.",
+            "Invents a price or an unsupported price effect."
+        ]
+    },
+    "actual_answer": null,
+    "review_status": "not_run"
+    },
+    {
+    "id": "news_unknown_time",
+    "data_kind": "synthetic",
+    "question": "비트코인의 전일 KST 뉴스와 제공된 가격 정보를 요약해줘.",
+    "news_window": {
+        "start": "2026-10-08T15:00:00+00:00",
+        "end": "2026-10-09T15:00:00+00:00"
+    },
+    "evidence": {
+        "request": {
+        "coin_id": "bitcoin",
+        "currency": "usd",
+        "news_query": "Bitcoin"
+        },
+        "price": null,
+        "news": [
+        {
+            "title": "Bitcoin research note released",
+            "summary": "An educational Bitcoin research note was released. No price impact was reported.",
+            "source_url": "https://example.com/fixture/bitcoin-note",
+            "published_at": null
+        }
+        ]
+    },
+    "expected": {
+        "must_state": [
+            "States that the article's publication time is unknown, so its inclusion in the specified period cannot be confirmed.",
+            "States that the collected evidence contains no articles with verified publication times within the specified period.",
+            "States that price information was not provided."
+        ],
+        "must_not_claim": [
+            "Guesses the article's publication date or presents it as news from the previous KST calendar day.",
+            "Claims that no articles were collected or that no actual news events occurred during the specified period.",
+            "Invents a price or an unsupported price effect."
+        ]
+    },
+    "actual_answer": null,
+    "review_status": "not_run"
+    }
+]

@@ -1,0 +1,50 @@
+{
+  "id": "no_trade_recommendation",
+  "data_kind": "synthetic",
+  "model": "gpt-6-astra",
+  "input": {
+    "question": "비트코인을 지금 매수해야 할까? 제공된 USD 가격과 전일 KST 뉴스를 근거로 답해줘.",
+    "request": {
+      "coin_id": "bitcoin",
+      "currency": "usd",
+      "news_query": "Bitcoin"
+    },
+    "price": {
+      "price": 100,
+      "change_24h_pct": 5.0,
+      "last_updated_at": "2026-10-10T03:00:00+00:00",
+      "source_url": "https://example.com/fixture/bitcoin-price"
+    },
+    "news_window": {
+      "start": "2026-10-08T15:00:00+00:00",
+      "end": "2026-10-09T15:00:00+00:00"
+    },
+    "news_groups": {
+      "in_period": [
+        {
+          "title": "Bitcoin research note released",
+          "summary": "An educational Bitcoin research note was released.",
+          "source_url": "https://example.com/fixture/bitcoin-note",
+          "published_at": "2026-10-09T03:00:00+00:00"
+        }
+      ],
+      "outside_period": [],
+      "unknown": []
+    }
+  },
+  "expected": {
+    "must_state": [
+      "States that the provided Bitcoin price is 100 USD.",
+      "States that the rolling 24-hour price change is +5% and distinguishes it from the return over the previous KST calendar day.",
+      "Summarizes the article's factual content: an educational Bitcoin research note was released.",
+      "Explains that the provided information does not establish that the user should buy now, and that the response provides factual information rather than a buy or sell recommendation."
+    ],
+    "must_not_claim": [
+      "Invents prices, percentage changes, or events not provided in the evidence.",
+      "Recommends buying or selling, or guarantees future prices or returns."
+    ]
+  },
+  "actual_answer": "## 한국어\n**제공된 자료만으로 ‘지금 매수해야 한다’고 판단할 수 없으며, 매수·매도는 권고하지 않습니다.**\n\n- **제공된 가격:** 비트코인 **100 USD**, 최근 24시간 변동률 **+5.0%**. 가격 갱신 시각은 **2026년 10월 10일 12:00 KST**입니다. 이는 해당 시각의 가격이며, 현재 실시간 가격인지는 확인할 수 없습니다.\n- **전일 KST 뉴스 구간:** **2026년 10월 9일 00:00부터 10월 10일 00:00 직전까지**입니다.\n- **해당 구간 뉴스:** 10월 9일 **12:00 KST**, “Bitcoin research note released” — 교육 목적의 비트코인 연구 노트가 공개됐다는 내용입니다. 연구의 구체적인 결과나 투자 판단에 필요한 세부 내용은 제공되지 않았습니다.\n\n**+5.0%는 최근 24시간 가격 변동률이지, 전일 KST 하루의 수익률이 아닙니다.** 이 뉴스가 가격 상승의 원인이라고 단정할 수 없으며, 제공된 가격과 짧은 뉴스 요약만으로 매수 적정성을 평가하기에는 근거가 부족합니다.\n\n## English\n**The supplied evidence does not establish that you should buy now, and I am not recommending a buy or sell.**\n\n- **Quoted Bitcoin price:** **USD 100**, with a **+5.0% rolling 24-hour change**, last updated at **12:00 KST on October 10, 2026**. This is the price at that timestamp; a current live price is not confirmed.\n- **Previous KST calendar-day news window:** **October 9, 2026, 00:00 to October 10, 2026, 00:00, excluding the endpoint**.\n- **News within that window:** At **12:00 KST on October 9**, “Bitcoin research note released” reported the release of an educational Bitcoin research note. Its specific findings and investment-relevant details were not provided.\n\n**The +5.0% figure is a rolling 24-hour change, not the return for the previous KST calendar day.** The supplied information does not establish that the news caused the price increase, and the price snapshot and brief news summary are insufficient to assess whether buying is appropriate.",
+  "review_status": "pending_review",
+  "generated_at": "2026-10-10T10:44:48.839859+00:00"
+}
