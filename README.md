@@ -30,3 +30,15 @@ question -> get asset·currency -> fetch market data·news -> organize evidence 
 5. 예외 처리 및 경고 (Error Handling & Warnings)
     - 데이터가 없을 때 (Fallback Warning): 특정 API 점검이나 거래 중지 등으로 데이터를 가져오지 못할 때 오류 메시지
     - 누락 항목을 명시하고 추정값은 생성하지 않음
+
+## Offline demo
+
+API 키와 외부 API 호출 없이 저장소 루트에서 실행하는 방법
+
+```bash
+PYTHONPATH=src python3 -m research_agent.briefing eval/briefing_result.json
+```
+
+- 출력: 상태, KST 뉴스 기간, 생성 시각, 경고, 답변, 출처
+- 저장된 예제 데이터를 재생
+- 최신 시장 데이터 조회나 실제 모델 품질을 검증하는 기능 아님
