@@ -80,7 +80,11 @@ def run_case(case):
         case["request"]["coin_id"],
         case["request"]["currency"],
     )
-    mock_news.assert_called_once_with(case["request"]["news_query"])
+    mock_news.assert_called_once_with(
+        case["request"]["news_query"],
+        datetime.fromisoformat(result["news_window"]["start"]),
+        fixed_reference,
+    )
 
     # 반환 근거 및 상태
     assert result["request"] == case["request"], case_id
@@ -125,7 +129,7 @@ def run_case(case):
     ), f"{case_id}: collected_at must match the completion time"
     assert result["news_window"] == {
         "start": "2026-10-06T15:00:00+00:00",
-        "end": "2026-10-07T15:00:00+00:00",
+        "end": fixed_reference.isoformat(),
     }, f"{case_id}: news window must be use the reference time"
     # 전체 출처 목록 및 기사 발행 시각
     expected_source_lines = []
