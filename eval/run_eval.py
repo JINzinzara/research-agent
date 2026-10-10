@@ -1,9 +1,10 @@
+"""Run deterministic pipeline evaluations with mocked collectors and synthesis."""
+
 import json
 from copy import deepcopy
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from unittest.mock import patch
-
 
 from research_agent import agent
 
@@ -11,6 +12,7 @@ CASES_PATH = Path(__file__).with_name("cases.jsonl")
 
 
 def load_cases(path):
+    """Load non-empty JSONL evaluation records from a UTF-8 file."""
     return [
         json.loads(line)
         for line in path.read_text(encoding="utf-8").splitlines()
@@ -19,9 +21,10 @@ def load_cases(path):
 
 
 def run_case(case):
+    """Check one pipeline fixture using fixed clocks and mocked external calls."""
     case_id = case["id"]
 
-    # 함수 내부에서 입력을 변경하여도 원본 기대값 유지
+    # Preserve expected values if a function mutates its inputs.
     test_data = deepcopy(case)
     expected_news = case["news"] or []
 
@@ -51,7 +54,7 @@ def run_case(case):
             return_value=test_data["news"],
         )
 
-    # KST 자정 전 시작하고 자정 후 완료되는 시점 실행 재현
+    # Fix the request just before KST midnight and finish just after it.
     fixed_reference = datetime(2026, 10, 8, 14, 59, 59, tzinfo=timezone.utc)
     fixed_completed = fixed_reference + timedelta(seconds=2)
 
@@ -69,12 +72,11 @@ def run_case(case):
             "synthesize",
             return_value="테스트 답변",
         ) as mock_synthesize,
-        patch("builtins.print"),
     ):
         mock_clock.now.side_effect = [fixed_reference, fixed_completed]
         result = agent.research(case["question"])
 
-    # 요청 및 수집 조건
+    # Check request and collection arguments.
     mock_extract.assert_called_once_with(case["question"])
     mock_price.assert_called_once_with(
         case["request"]["coin_id"],
@@ -86,13 +88,13 @@ def run_case(case):
         fixed_reference,
     )
 
-    # 반환 근거 및 상태
+    # Check returned evidence and status.
     assert result["request"] == case["request"], case_id
     assert result["price"] == case["price"], case_id
     assert result["news"] == expected_news, case_id
     assert result["status"] == case["expected_status"], case_id
 
-    # 누락·실패 경고
+    # Check missing-data and collection warnings.
     expected_warnings = case["expected_warning_prefixes"]
     assert isinstance(result["warnings"], list), case_id
     assert len(result["warnings"]) == len(expected_warnings), case_id
@@ -102,7 +104,7 @@ def run_case(case):
             warning.startswith(prefix) for warning in result["warnings"]
         ), f"{case_id}: missing warning {prefix}"
 
-    # 답변 합성 여부 및 전달 근거
+    # Check synthesis gating and evidence forwarding.
     assert isinstance(result["answer"], str), case_id
 
     if case["expect_synthesis"]:
@@ -118,7 +120,7 @@ def run_case(case):
         mock_synthesize.assert_not_called()
         assert result["answer"].startswith("수집된 근거가 없어"), case_id
 
-    # 결과 생성 시각: UTC 기준, 이번 실행 범위 안에 있는가
+    # Keep generation time separate from the fixed request cutoff.
     collected_at = datetime.fromisoformat(result["collected_at"])
 
     assert collected_at.utcoffset() == timedelta(
@@ -130,8 +132,8 @@ def run_case(case):
     assert result["news_window"] == {
         "start": "2026-10-06T15:00:00+00:00",
         "end": fixed_reference.isoformat(),
-    }, f"{case_id}: news window must be use the reference time"
-    # 전체 출처 목록 및 기사 발행 시각
+    }, f"{case_id}: news window must use the reference time"
+    # Check source links and publication timestamps.
     expected_source_lines = []
 
     if case["price"] is not None:
@@ -157,6 +159,7 @@ def run_case(case):
 
 
 def main():
+    """Run all fixture evaluations and print their pass counts."""
     cases = load_cases(CASES_PATH)
 
     for case in cases:

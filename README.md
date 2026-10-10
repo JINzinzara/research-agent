@@ -1,53 +1,76 @@
 # research-agent
 
-## Purpose
+가격과 RSS 기사에 근거해 한국어·영어 브리핑을 생성하는 크립토 리서치 도구.
+지원 자산은 Bitcoin·Ethereum·Solana, 통화는 USD·KRW다.
+매매 추천·자동 거래·개인 계정 연동은 제공하지 않는다.
 
-크립토 시장을 빠르게 파악하려는 개인 투자자를 위한 가격 데이터와 최신 뉴스를 근거로 답변하는 리서치 에이전트이다. 해당 에이전트는 정보 탐색 및 비교 시간을 줄이고, 답변에 대한 출처를 명확히 한다. 다만 자동 거래와 종목 추천을 제공하지 않는다.
+## Current contract
 
-## Workflow
+- 뉴스 기간: 전날 KST 00:00 이상부터 리서치 시작 시각 `reference_at` 미만까지.
+- 기사: 피드 전체의 자산명 매칭 결과에서 기간 안 기사를 우선해 최대 5개 선택.
+  남는 자리는 기간 밖·발행 시각 미상 참고 자료로 채운다. 각 그룹 안에서는 피드 순서를 유지한다.
+- 가격의 rolling 24시간 변동률과 뉴스 기간의 수익률은 다르다.
+- 가격 갱신 시각·기사 발행 시각·결과 생성 시각을 구분한다.
+  `collected_at`은 결과 생성 시각이며 개별 자료 수집 시각이 아니다.
+- 반환 필드: `request`, `price`, `news`, `answer`, `sources`, `status`,
+  `warnings`, `collected_at`, `news_window`, `news_groups`.
+- 상태: `ok` / 누락·수집 한계가 있는 `partial` / 가격과 뉴스 근거가 모두 없는 `failed`.
+- 수집 근거가 모두 없으면 답변 합성을 생략한다. 누락 수치·시각을 추정하지 않는다.
+- JSON은 기존 파일을 덮어쓰지 않는다. `research()`는 결과를 반환·선택적으로 저장하고,
+  터미널 출력은 CLI가 담당한다.
 
+## Structure
+
+- `src/research_agent/agent.py`: 수집·합성·경고·결과 반환의 전체 흐름.
+- `src/research_agent/collectors.py`: CoinGecko Demo 가격과 CoinDesk RSS 수집.
+- `src/research_agent/generation.py`: 질문·계획 검증, 요청 해석, 근거 기반 답변 생성.
+- `src/research_agent/periods.py`: UTC 정규화, KST 기간 계산, 기사 기간 분류.
+- `src/research_agent/briefing.py`: 출처·브리핑 표시, JSON 저장, 저장본 재생.
+- `src/research_agent/cli.py`: 실제 실행 인자 처리와 터미널 출력.
+- `tests/`: 외부 호출 없는 단위·통합 검사.
+- `eval/`: 평가 입력, 평가 runner, 보존한 실제 모델 답변·실행 결과.
+
+## Live research
+
+저장소 루트에서 실행한다. 기존 Python 환경에 `openai`, `coingecko-sdk`,
+`pydantic`이 필요하고, `OPENAI_API_KEY`와 Demo 키인 `COINGECKO_API_KEY`가 설정돼 있어야 한다.
+모델은 `gpt-6-astra`다. 키는 코드·JSON·Git에 저장하지 않는다.
+
+```bash
+mkdir -p outputs
+PYTHONPATH=src python3 -m research_agent.cli "비트코인의 USD 가격과 전날 00시부터 조회 시각까지의 뉴스를 요약해줘." --output outputs/briefing.json
 ```
-question -> get asset·currency -> fetch market data·news -> organize evidence -> answer + sources
-```
 
-## Result
-
-1. 요약 및 신호 (Summary & Signal)
-    - 질문에 대한 요약 답변: 사용자의 질문 의도를 파악하여 1~2줄로 핵심만 요약한 답변
-
-2. 정량적 시장 데이터 (Quantitative Data)
-    - 현재 가격 (Current Price): 조회 시점의 자산 가격과 통화
-    - 24시간 변동률 (24h Change %): 24시간 전 대비 등락률
-
-3. 정성적 뉴스 및 정보 (Qualitative News)
-    - 자산명이 포함된 RSS 기사 최대 5개의 헤드라인 및 요약. 지정 기간 안 기사를 우선하고, 남는 자리는 기간 밖·발행 시각 미상 참고 자료로 채운다.
-
-4. 신뢰성 및 메타데이터 (Provenance & Metadata)
-    - 출처 URL (Source URLs): 수집된 뉴스 및 가격 데이터의 원본 링크 (답변 근거 확인용)
-    - 가격 갱신 시각, 기사 발행 시각, 결과 생성 시각을 구분해 표시한다. `collected_at`은 결과 생성 시각이며 개별 자료의 수집 시각이 아니다.
-    - 수집 데이터 제공자(Provider) 명시: 데이터 신뢰도 검증용 출처 표기
-
-5. 예외 처리 및 경고 (Error Handling & Warnings)
-    - 데이터가 없을 때 (Fallback Warning): 특정 API 점검이나 거래 중지 등으로 데이터를 가져오지 못할 때 오류 메시지
-    - 누락 항목을 명시하고 추정값은 생성하지 않음
-
-## News window
-
-- 수동 리서치의 뉴스 범위: 전날 KST 00:00 이상부터 실행 시작 시각 `reference_at` 미만까지.
-- `end`는 모델 답변 생성이 끝나는 `collected_at`과 별개이며 실행 시작에 고정한다.
-- 기간 길이는 조회 시각에 따라 달라진다. 전일 하루나 최근 24시간 뉴스라고 부르지 않는다.
-- 가격의 rolling 24시간 변동률은 이 뉴스 기간의 수익률이 아니다.
-- 현재 RSS 피드에서 확보한 기사만 대상으로 하며 기간 전체의 뉴스를 보장하지 않는다.
-- 아침 정기 브리핑·스케줄·알림은 아직 구현하지 않았다.
+실제 조회와 유료 모델 요청이 발생한다. 기존 저장본은 아래 재생 명령으로 확인한다.
+동일 출력 경로로 실제 리서치를 재실행하면 저장 단계에서 거절되지만,
+그 전에 API 요청은 발생할 수 있으므로 성공한 실행을 반복하지 않는다.
 
 ## Offline demo
 
-API 키와 외부 API 호출 없이 저장소 루트에서 실행하는 방법
+API 키와 외부 호출 없이 저장소 루트에서 실행한다.
 
 ```bash
 PYTHONPATH=src python3 -m research_agent.briefing eval/briefing_result.json
 ```
 
-- 출력: 상태, KST 뉴스 기간, 생성 시각, 경고, 답변, 출처
-- 저장된 예제 데이터를 재생
-- 최신 시장 데이터 조회나 실제 모델 품질을 검증하는 기능 아님
+상태·KST 뉴스 기간·생성 시각·경고·답변·출처를 표시한다.
+저장된 예제 데이터의 재생이며 최신 조회나 모델 품질 검증이 아니다.
+`eval/outputs/`의 보존 결과도 같은 명령의 파일 인자로 재생할 수 있다.
+이전 계약으로 생성된 결과는 당시의 기간과 답변을 그대로 보존한다.
+
+## Offline checks
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests -v
+```
+
+API 키 없이 실행한다. 수집·모델 호출을 mock으로 대체하며,
+기존 JSONL 평가 8개도 같은 명령에 포함한다.
+실제 모델의 답변 품질·최신 RSS 제공 범위를 이 검사만으로 보장하지 않는다.
+
+## Limits
+
+- RSS는 과거 전체 기사 검색이 아니다. 최대 5개 선택도 기간 전체의 뉴스 확보를 보장하지 않는다.
+- 자산명 문자열 매칭이며 거시 사건·의미적 관련성·기사 본문 검증은 구현하지 않았다.
+- 가격 최신성의 허용 기준은 아직 확정하지 않았다.
+- 개인화 프로필·사용자 조건 알림·아침 스케줄·Telegram 전달은 미구현이다.
