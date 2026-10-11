@@ -6,7 +6,14 @@ from functools import lru_cache
 from pydantic import BaseModel
 
 MODEL = "gpt-6-astra"
-ASSETS = {"bitcoin": "Bitcoin", "ethereum": "Ethereum", "solana": "Solana"}
+ASSETS = {
+    "bitcoin": "Bitcoin",
+    "ethereum": "Ethereum",
+    "solana": "Solana",
+    "ripple": "XRP",
+    "usd-coin": "USDC",
+    "binancecoin": "BNB",
+}
 CURRENCIES = {"usd", "krw"}
 
 
@@ -34,11 +41,15 @@ def validate_plan(planned):
         raise TypeError("planned type must be dict")
     coin_id = planned.get("coin_id")
     if coin_id not in ASSETS:
-        raise ValueError("coin_id must be bitcoin, ethereum or solana")
+        raise ValueError(
+            "coin_id must be bitcoin, ethereum, solana, ripple, usd-coin or binancecoin."
+        )
     if planned.get("currency") not in CURRENCIES:
         raise ValueError("currency must be usd or krw")
     if planned.get("news_query") != ASSETS[coin_id]:
-        raise ValueError("news_query must be Bitcoin, Ethereum or Solana")
+        raise ValueError(
+            "news_query must be Bitcoin, Ethereum, Solana, XRP, USDC or BNB."
+        )
     return planned
 
 
@@ -57,12 +68,12 @@ def extract_request(question):
         model=MODEL,
         instructions=(
             "Extract a research plan from the question. "
-            "coin_id must be bitcoin, ethereum or solana. "
+            "coin_id must be bitcoin, ethereum, solana, ripple, usd-coin or binancecoin. "
             "currency must be usd or krw. "
             "news_query must match coin_id exactly: "
-            "bitcoin=Bitcoin, ethereum=Ethereum, solana=Solana. "
+            "bitcoin=Bitcoin, ethereum=Ethereum, solana=Solana, ripple=XRP, usd-coin=USDC or binancecoin=BNB. "
             "Interpret the question regardless of its language. "
-            "Normalize asset names to bitcoin, ethereum or solana. "
+            "Normalize asset names to bitcoin, ethereum, solana, ripple, usd-coin or binancecoin. "
             "Normalize currencies to usd or krw. "
             "Always use the specified canonical values in the output."
         ),
